@@ -85,13 +85,15 @@ test.describe("API - Models", () => {
     const response = await request.get("/api/ai/models");
     expect(response.ok()).toBeTruthy();
 
-    const data = (await response.json()) as Array<{
-      credential: { id: string; name: string; kind: string };
-      models: Array<{ id: string; name: string }>;
-      error?: string;
-    }>;
+    const data = (await response.json()) as {
+      credentials: Array<{
+        credential: { id: string; name: string; kind: string };
+        models: Array<{ id: string; name: string }>;
+        error?: string;
+      }>;
+    };
 
-    expect(Array.isArray(data)).toBe(true);
+    expect(Array.isArray(data.credentials)).toBe(true);
   });
 });
 
@@ -112,7 +114,9 @@ test.describe("API - Chat", () => {
     expect(response.status()).toBe(400);
   });
 
-  test("POST /api/chat - should validate messages array", async ({ request }) => {
+  test("POST /api/chat - should validate messages array", async ({
+    request,
+  }) => {
     const response = await request.post("/api/chat", {
       data: {
         messages: [],
@@ -201,9 +205,7 @@ test.describe("API - Conversations", () => {
       const created = (await createResponse.json()) as { id: string };
 
       // Get the conversation
-      const getResponse = await request.get(
-        `/api/conversations/${created.id}`,
-      );
+      const getResponse = await request.get(`/api/conversations/${created.id}`);
       expect(getResponse.ok()).toBeTruthy();
 
       const data = (await getResponse.json()) as {

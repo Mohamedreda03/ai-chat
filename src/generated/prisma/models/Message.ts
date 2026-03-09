@@ -28,6 +28,7 @@ export type MessageMinAggregateOutputType = {
   id: string | null
   role: string | null
   content: string | null
+  files: string | null
   createdAt: Date | null
   conversationId: string | null
 }
@@ -36,6 +37,7 @@ export type MessageMaxAggregateOutputType = {
   id: string | null
   role: string | null
   content: string | null
+  files: string | null
   createdAt: Date | null
   conversationId: string | null
 }
@@ -44,6 +46,7 @@ export type MessageCountAggregateOutputType = {
   id: number
   role: number
   content: number
+  files: number
   createdAt: number
   conversationId: number
   _all: number
@@ -54,6 +57,7 @@ export type MessageMinAggregateInputType = {
   id?: true
   role?: true
   content?: true
+  files?: true
   createdAt?: true
   conversationId?: true
 }
@@ -62,6 +66,7 @@ export type MessageMaxAggregateInputType = {
   id?: true
   role?: true
   content?: true
+  files?: true
   createdAt?: true
   conversationId?: true
 }
@@ -70,6 +75,7 @@ export type MessageCountAggregateInputType = {
   id?: true
   role?: true
   content?: true
+  files?: true
   createdAt?: true
   conversationId?: true
   _all?: true
@@ -151,6 +157,7 @@ export type MessageGroupByOutputType = {
   id: string
   role: string
   content: string
+  files: string | null
   createdAt: Date
   conversationId: string
   _count: MessageCountAggregateOutputType | null
@@ -180,6 +187,7 @@ export type MessageWhereInput = {
   id?: Prisma.StringFilter<"Message"> | string
   role?: Prisma.StringFilter<"Message"> | string
   content?: Prisma.StringFilter<"Message"> | string
+  files?: Prisma.StringNullableFilter<"Message"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Message"> | Date | string
   conversationId?: Prisma.StringFilter<"Message"> | string
   conversation?: Prisma.XOR<Prisma.ConversationScalarRelationFilter, Prisma.ConversationWhereInput>
@@ -189,6 +197,7 @@ export type MessageOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  files?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   conversationId?: Prisma.SortOrder
   conversation?: Prisma.ConversationOrderByWithRelationInput
@@ -201,6 +210,7 @@ export type MessageWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.MessageWhereInput | Prisma.MessageWhereInput[]
   role?: Prisma.StringFilter<"Message"> | string
   content?: Prisma.StringFilter<"Message"> | string
+  files?: Prisma.StringNullableFilter<"Message"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Message"> | Date | string
   conversationId?: Prisma.StringFilter<"Message"> | string
   conversation?: Prisma.XOR<Prisma.ConversationScalarRelationFilter, Prisma.ConversationWhereInput>
@@ -210,6 +220,7 @@ export type MessageOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  files?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   conversationId?: Prisma.SortOrder
   _count?: Prisma.MessageCountOrderByAggregateInput
@@ -224,6 +235,7 @@ export type MessageScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Message"> | string
   role?: Prisma.StringWithAggregatesFilter<"Message"> | string
   content?: Prisma.StringWithAggregatesFilter<"Message"> | string
+  files?: Prisma.StringNullableWithAggregatesFilter<"Message"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Message"> | Date | string
   conversationId?: Prisma.StringWithAggregatesFilter<"Message"> | string
 }
@@ -232,6 +244,7 @@ export type MessageCreateInput = {
   id?: string
   role: string
   content: string
+  files?: string | null
   createdAt?: Date | string
   conversation: Prisma.ConversationCreateNestedOneWithoutMessagesInput
 }
@@ -240,6 +253,7 @@ export type MessageUncheckedCreateInput = {
   id?: string
   role: string
   content: string
+  files?: string | null
   createdAt?: Date | string
   conversationId: string
 }
@@ -248,6 +262,7 @@ export type MessageUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  files?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   conversation?: Prisma.ConversationUpdateOneRequiredWithoutMessagesNestedInput
 }
@@ -256,6 +271,7 @@ export type MessageUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  files?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   conversationId?: Prisma.StringFieldUpdateOperationsInput | string
 }
@@ -264,6 +280,7 @@ export type MessageCreateManyInput = {
   id?: string
   role: string
   content: string
+  files?: string | null
   createdAt?: Date | string
   conversationId: string
 }
@@ -272,6 +289,7 @@ export type MessageUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  files?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -279,6 +297,7 @@ export type MessageUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  files?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   conversationId?: Prisma.StringFieldUpdateOperationsInput | string
 }
@@ -297,6 +316,7 @@ export type MessageCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  files?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   conversationId?: Prisma.SortOrder
 }
@@ -305,6 +325,7 @@ export type MessageMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  files?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   conversationId?: Prisma.SortOrder
 }
@@ -313,6 +334,7 @@ export type MessageMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  files?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   conversationId?: Prisma.SortOrder
 }
@@ -363,6 +385,7 @@ export type MessageCreateWithoutConversationInput = {
   id?: string
   role: string
   content: string
+  files?: string | null
   createdAt?: Date | string
 }
 
@@ -370,6 +393,7 @@ export type MessageUncheckedCreateWithoutConversationInput = {
   id?: string
   role: string
   content: string
+  files?: string | null
   createdAt?: Date | string
 }
 
@@ -380,6 +404,7 @@ export type MessageCreateOrConnectWithoutConversationInput = {
 
 export type MessageCreateManyConversationInputEnvelope = {
   data: Prisma.MessageCreateManyConversationInput | Prisma.MessageCreateManyConversationInput[]
+  skipDuplicates?: boolean
 }
 
 export type MessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -405,6 +430,7 @@ export type MessageScalarWhereInput = {
   id?: Prisma.StringFilter<"Message"> | string
   role?: Prisma.StringFilter<"Message"> | string
   content?: Prisma.StringFilter<"Message"> | string
+  files?: Prisma.StringNullableFilter<"Message"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Message"> | Date | string
   conversationId?: Prisma.StringFilter<"Message"> | string
 }
@@ -413,6 +439,7 @@ export type MessageCreateManyConversationInput = {
   id?: string
   role: string
   content: string
+  files?: string | null
   createdAt?: Date | string
 }
 
@@ -420,6 +447,7 @@ export type MessageUpdateWithoutConversationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  files?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -427,6 +455,7 @@ export type MessageUncheckedUpdateWithoutConversationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  files?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -434,6 +463,7 @@ export type MessageUncheckedUpdateManyWithoutConversationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  files?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -443,6 +473,7 @@ export type MessageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   id?: boolean
   role?: boolean
   content?: boolean
+  files?: boolean
   createdAt?: boolean
   conversationId?: boolean
   conversation?: boolean | Prisma.ConversationDefaultArgs<ExtArgs>
@@ -452,6 +483,7 @@ export type MessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   id?: boolean
   role?: boolean
   content?: boolean
+  files?: boolean
   createdAt?: boolean
   conversationId?: boolean
   conversation?: boolean | Prisma.ConversationDefaultArgs<ExtArgs>
@@ -461,6 +493,7 @@ export type MessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   id?: boolean
   role?: boolean
   content?: boolean
+  files?: boolean
   createdAt?: boolean
   conversationId?: boolean
   conversation?: boolean | Prisma.ConversationDefaultArgs<ExtArgs>
@@ -470,11 +503,12 @@ export type MessageSelectScalar = {
   id?: boolean
   role?: boolean
   content?: boolean
+  files?: boolean
   createdAt?: boolean
   conversationId?: boolean
 }
 
-export type MessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "role" | "content" | "createdAt" | "conversationId", ExtArgs["result"]["message"]>
+export type MessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "role" | "content" | "files" | "createdAt" | "conversationId", ExtArgs["result"]["message"]>
 export type MessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   conversation?: boolean | Prisma.ConversationDefaultArgs<ExtArgs>
 }
@@ -494,6 +528,7 @@ export type $MessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     id: string
     role: string
     content: string
+    files: string | null
     createdAt: Date
     conversationId: string
   }, ExtArgs["result"]["message"]>
@@ -923,6 +958,7 @@ export interface MessageFieldRefs {
   readonly id: Prisma.FieldRef<"Message", 'String'>
   readonly role: Prisma.FieldRef<"Message", 'String'>
   readonly content: Prisma.FieldRef<"Message", 'String'>
+  readonly files: Prisma.FieldRef<"Message", 'String'>
   readonly createdAt: Prisma.FieldRef<"Message", 'DateTime'>
   readonly conversationId: Prisma.FieldRef<"Message", 'String'>
 }
@@ -1154,6 +1190,7 @@ export type MessageCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * The data used to create many Messages.
    */
   data: Prisma.MessageCreateManyInput | Prisma.MessageCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1172,6 +1209,7 @@ export type MessageCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensi
    * The data used to create many Messages.
    */
   data: Prisma.MessageCreateManyInput | Prisma.MessageCreateManyInput[]
+  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

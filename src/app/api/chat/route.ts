@@ -1,10 +1,7 @@
-import {
-  streamText,
-  generateText,
-  UIMessage,
-  convertToModelMessages,
-} from "ai";
+import { streamText, generateText, UIMessage } from "ai";
 import { NextResponse } from "next/server";
+import { readFile } from "fs/promises";
+import { join } from "path";
 import prisma from "@/lib/prisma";
 import { buildLanguageModel } from "@/lib/ai-platforms";
 
@@ -141,7 +138,7 @@ export async function POST(req: Request) {
     });
 
     if (!credential) {
-      return err("Selected AI credential was not found.", 400);
+      return err("Selected AI credential was not found.", 404);
     }
 
     // ── 3. Update conversation model if changed ──────────────────────────────
@@ -164,7 +161,6 @@ export async function POST(req: Request) {
     });
 
     // ── 4. Save user message (deduplicated by checking last message) ─────────
-    let userMessageSaved = false;
     if (conversationId) {
       const lastUser = [...messages].reverse().find((m) => m.role === "user");
       if (lastUser) {
@@ -173,23 +169,58 @@ export async function POST(req: Request) {
           .map((p) => (p as { type: "text"; text: string }).text)
           .join("\n");
 
-        // Avoid duplicating the message if it was already saved (e.g. on retry)
+        const fileParts = lastUser.parts.filter((p) => p.type === "file") as {
+          type: "file";
+          url: string;
+          mediaType?: string;
+          filename?: string;
+        }[];
+
+        // Dedup: for file-only messages also match on file URL to avoid collisions
         const existing = await prisma.message.findFirst({
-          where: { conversationId, role: "user", content: textContent },
+          where: {
+            conversationId,
+            role: "user",
+            content: textContent || "[file]",
+            ...(!textContent && fileParts.length > 0
+              ? { files: { contains: fileParts[0].url } }
+              : {}),
+          },
           orderBy: { createdAt: "desc" },
         });
         const fiveSecondsAgo = new Date(Date.now() - 5000);
         const isRecent = existing && existing.createdAt > fiveSecondsAgo;
 
         if (!isRecent) {
+          // Store file metadata as JSON so it can be reconstructed on reload
+          const filesJson =
+            fileParts.length > 0
+              ? JSON.stringify(
+                  fileParts.map((f) => ({
+                    url: f.url,
+                    mediaType: f.mediaType ?? "application/octet-stream",
+                    filename: f.filename ?? null,
+                  })),
+                )
+              : null;
+
           await prisma.message.create({
-            data: { role: "user", content: textContent, conversationId },
+            data: {
+              role: "user",
+              content: textContent || "[file]",
+              files: filesJson,
+              conversationId,
+            },
           });
-          userMessageSaved = true;
         }
 
-        if (conversation?.title === "New Conversation" && textContent) {
-          generateTitle(textContent, languageModel)
+        if (
+          conversation?.title === "New Conversation" &&
+          (textContent || fileParts.length > 0)
+        ) {
+          const titleSource =
+            textContent || (fileParts[0]?.filename ?? "File attachment");
+          generateTitle(titleSource, languageModel)
             .then((title) =>
               prisma.conversation
                 .update({ where: { id: conversationId }, data: { title } })
@@ -200,11 +231,87 @@ export async function POST(req: Request) {
       }
     }
 
-    // ── 5. Stream ─────────────────────────────────────────────────────────────
+    // ── 5. Build model messages with binary file data ────────────────────────
+    // convertToModelMessages converts FileUIPart.url to a URL object which
+    // Gemini rejects (only http/https allowed). We build messages manually so
+    // local /uploads/ files are passed as raw Uint8Array (inline binary) that
+    // providers encode to base64 inline_data correctly.
+    type TextPart = { type: "text"; text: string };
+    type FilePart = {
+      type: "file";
+      data: Uint8Array | string | URL;
+      mediaType: string;
+      filename?: string;
+    };
+    type ContentPart = TextPart | FilePart;
+    type ModelMsg = { role: string; content: ContentPart[] };
+
+    const modelMessages: ModelMsg[] = [];
+    for (const msg of messages) {
+      const content: ContentPart[] = [];
+      for (const part of msg.parts) {
+        if (part.type === "text") {
+          const tp = part as { type: "text"; text: string };
+          content.push({ type: "text", text: tp.text });
+        } else if (part.type === "file") {
+          const fp = part as {
+            type: "file";
+            url: string;
+            mediaType?: string;
+            filename?: string;
+          };
+          const mediaType = fp.mediaType ?? "application/octet-stream";
+          if (fp.url.startsWith("/uploads/")) {
+            // Read from disk and pass as Uint8Array — provider encodes to base64
+            try {
+              const uploadsDir = join(process.cwd(), "public", "uploads");
+              const filePath = join(process.cwd(), "public", fp.url.slice(1));
+              // Security: reject path traversal attempts (e.g. /uploads/../../etc/passwd)
+              if (
+                !filePath.startsWith(uploadsDir + "/") &&
+                !filePath.startsWith(uploadsDir + "\\")
+              ) {
+                continue;
+              }
+              const buffer = await readFile(filePath);
+              content.push({
+                type: "file",
+                data: buffer,
+                mediaType,
+                ...(fp.filename ? { filename: fp.filename } : {}),
+              });
+            } catch {
+              /* skip unreadable file */
+            }
+          } else if (fp.url.startsWith("data:")) {
+            // Extract plain base64 from data URL
+            const base64 = fp.url.slice(fp.url.indexOf(",") + 1);
+            content.push({
+              type: "file",
+              data: base64,
+              mediaType,
+              ...(fp.filename ? { filename: fp.filename } : {}),
+            });
+          } else if (fp.url.startsWith("http")) {
+            content.push({
+              type: "file",
+              data: new URL(fp.url),
+              mediaType,
+              ...(fp.filename ? { filename: fp.filename } : {}),
+            });
+          }
+        }
+      }
+      if (content.length > 0) {
+        modelMessages.push({ role: msg.role, content });
+      }
+    }
+
     const result = streamText({
       model: languageModel,
       system: "You are a helpful assistant.",
-      messages: await convertToModelMessages(messages),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      messages: modelMessages as any,
       onError({ error }) {
         console.error("[streamText error]", error);
       },

@@ -1,11 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeftIcon, KeyRoundIcon, ServerIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  KeyRoundIcon,
+  ServerIcon,
+  Trash2Icon,
+  AlertTriangleIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CredentialForm } from "@/components/features/credential-form";
 import { CredentialList } from "@/components/features/credential-list";
 import { useCredentials, useModels } from "@/hooks/use-api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -13,6 +28,8 @@ export default function SettingsPage() {
     useCredentials();
   const { refresh: refreshModels } = useModels();
   const [saving, setSaving] = useState(false);
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   const handleSave = async (data: {
     name: string;
@@ -45,6 +62,18 @@ export default function SettingsPage() {
   const handleDelete = async (id: string) => {
     await deleteCredential(id);
     await refreshModels();
+  };
+
+  const handleDeleteAll = async () => {
+    setDeletingAll(true);
+    try {
+      await fetch("/api/conversations", { method: "DELETE" });
+    } catch {
+      /* silent */
+    } finally {
+      setDeletingAll(false);
+      setShowDeleteAllDialog(false);
+    }
   };
 
   return (
@@ -112,8 +141,78 @@ export default function SettingsPage() {
               )}
             </div>
           </section>
+
+          {/* Danger zone */}
+          <section className="rounded-xl border border-destructive/30 bg-card">
+            <div className="flex items-center gap-3 border-b border-destructive/20 px-6 py-4">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+                <AlertTriangleIcon className="size-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-destructive">
+                  Danger Zone
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Irreversible actions — proceed with caution
+                </p>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium">
+                    Delete all conversations
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Permanently removes every conversation and its messages.
+                  </p>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteAllDialog(true)}
+                  className="shrink-0"
+                >
+                  <Trash2Icon className="size-3.5" />
+                  Delete all
+                </Button>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
+
+      {/* Confirm delete-all dialog */}
+      <Dialog
+        open={showDeleteAllDialog}
+        onOpenChange={(open) => !open && setShowDeleteAllDialog(false)}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete all conversations?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete every conversation and all messages.
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteAllDialog(false)}
+              disabled={deletingAll}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAll}
+              disabled={deletingAll}
+            >
+              {deletingAll ? "Deleting..." : "Delete all"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

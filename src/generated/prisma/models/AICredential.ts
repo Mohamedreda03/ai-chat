@@ -1191,6 +1191,7 @@ export type AICredentialCreateManyArgs<ExtArgs extends runtime.Types.Extensions.
    * The data used to create many AICredentials.
    */
   data: Prisma.AICredentialCreateManyInput | Prisma.AICredentialCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1209,6 +1210,7 @@ export type AICredentialCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Ex
    * The data used to create many AICredentials.
    */
   data: Prisma.AICredentialCreateManyInput | Prisma.AICredentialCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**

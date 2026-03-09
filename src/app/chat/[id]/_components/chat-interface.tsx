@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { DefaultChatTransport, type FileUIPart, type UIMessage } from "ai";
 import {
   Fragment,
   Suspense,
@@ -107,15 +107,30 @@ function InitialQuerySender({
   onSend,
 }: {
   conversationId: string;
-  onSend: (text: string) => void;
+  onSend: (text: string, files?: FileUIPart[]) => void;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Guard against React StrictMode double-invocation in development
+  const hasSent = useRef(false);
 
   useEffect(() => {
+    if (hasSent.current) return;
     const q = searchParams.get("q");
-    if (q) {
-      onSend(q);
+    const pendingKey = `pending-files-${conversationId}`;
+    let files: FileUIPart[] = [];
+    try {
+      const saved = sessionStorage.getItem(pendingKey);
+      if (saved) {
+        files = JSON.parse(saved) as FileUIPart[];
+        sessionStorage.removeItem(pendingKey);
+      }
+    } catch {
+      // sessionStorage not available
+    }
+    if (q || files.length > 0) {
+      hasSent.current = true;
+      onSend(q ?? "", files);
       router.replace(`/chat/${conversationId}`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -218,13 +233,53 @@ export function ChatInterface({
   // Send initial query from URL (e.g. from landing page hero input)
   // Wrapped in Suspense because useSearchParams() requires it in App Router
 
-  const handleSubmit = (message: PromptInputMessage) => {
+  /** Upload files (data/blob URLs) to the server, return FileUIParts with /uploads URLs */
+  const uploadFiles = async (files: FileUIPart[]): Promise<FileUIPart[]> => {
+    return Promise.all(
+      files.map(async (file) => {
+        // Already a server URL — skip
+        if (file.url.startsWith("/uploads/")) return file;
+        try {
+          const response = await fetch(file.url);
+          const blob = await response.blob();
+          const form = new FormData();
+          form.append(
+            "file",
+            new File([blob], file.filename ?? "file", { type: file.mediaType }),
+          );
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: form,
+          });
+          if (!res.ok) return file;
+          const data = (await res.json()) as {
+            url: string;
+            filename: string;
+            mediaType: string;
+          };
+          return {
+            type: "file" as const,
+            url: data.url,
+            filename: data.filename,
+            mediaType: data.mediaType,
+          };
+        } catch {
+          return file;
+        }
+      }),
+    );
+  };
+
+  const handleSubmit = async (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
     const hasAttachments = Boolean(message.files?.length);
     if (!(hasText || hasAttachments) || !selectedModel) return;
+    const filesToSend = message.files?.length
+      ? await uploadFiles(message.files)
+      : [];
     sendMessage({
       text: message.text || "Sent with attachments",
-      files: message.files,
+      files: filesToSend,
     });
     setInput("");
   };
@@ -239,8 +294,12 @@ export function ChatInterface({
       <Suspense fallback={null}>
         <InitialQuerySender
           conversationId={conversationId}
-          onSend={(text) => {
-            if (messages.length === 0 && selectedModel) sendMessage({ text });
+          onSend={(text, files) => {
+            if (messages.length === 0 && selectedModel)
+              sendMessage({
+                text: text || (files?.length ? "Sent with attachments" : ""),
+                files,
+              });
           }}
         />
       </Suspense>
@@ -257,6 +316,43 @@ export function ChatInterface({
               <div key={message.id} dir="auto">
                 {message.parts.map((part, i) => {
                   switch (part.type) {
+                    case "file": {
+                      const isImage = part.mediaType?.startsWith("image/");
+                      if (isImage) {
+                        return (
+                          <Message
+                            key={`${message.id}-${i}`}
+                            from={message.role}
+                          >
+                            <MessageContent>
+                              <img
+                                src={part.url}
+                                alt={part.filename ?? "Image"}
+                                className="max-h-72 max-w-sm rounded-xl object-contain"
+                              />
+                            </MessageContent>
+                          </Message>
+                        );
+                      }
+                      const attachment = {
+                        id: `${message.id}-${i}`,
+                        type: "file" as const,
+                        url: part.url,
+                        mediaType: part.mediaType,
+                        filename: part.filename,
+                      };
+                      return (
+                        <Message key={`${message.id}-${i}`} from={message.role}>
+                          <MessageContent>
+                            <Attachments variant="inline">
+                              <Attachment data={attachment}>
+                                <AttachmentPreview />
+                              </Attachment>
+                            </Attachments>
+                          </MessageContent>
+                        </Message>
+                      );
+                    }
                     case "text":
                       return (
                         <Fragment key={`${message.id}-${i}`}>
