@@ -204,7 +204,7 @@ export function Sidebar() {
 
       <div className="border-t px-3 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
+          <div className="flex-col items-center gap-1">
             <Link
               href="/"
               className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"

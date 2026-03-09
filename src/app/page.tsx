@@ -10,33 +10,14 @@ import { Logo } from "@/components/logo";
 import { ModelControl } from "@/components/features/model-control";
 import { usePersistedModel } from "@/hooks/use-persisted-model";
 
-interface Conversation {
-  id: string;
-  title: string;
-  updatedAt: string;
-}
-
-function formatTime(dateStr: string) {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days === 1) return "Yesterday";
-  return date.toLocaleDateString();
-}
+// Landing page for the AI Chat application
 
 export default function HomePage() {
   const router = useRouter();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+
   const { selectedModel, setSelectedModel } = usePersistedModel();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -46,12 +27,7 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    fetch("/api/conversations")
-      .then((r) => r.json())
-      .then((data) => setConversations(data.slice(0, 6)))
-      .catch(() => {});
-  }, []);
+  // No recent conversations shown on the landing page by design
 
   const handleStart = async () => {
     if (loading) return;
@@ -108,12 +84,12 @@ export default function HomePage() {
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:h-16 sm:px-6">
           <Link
             href="/"
-            className="flex items-center gap-2.5 font-semibold tracking-tight"
+            className="flex flex-col items-center gap-1 font-semibold tracking-tight"
           >
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
+            <div className="flex size-8 items-center justify-center rounded-full bg-primary px-1.5 shadow-sm">
               <Logo className="size-5 text-primary-foreground" />
             </div>
-            <span className="hidden sm:inline">AI Chat</span>
+            <span className="text-xs sm:text-sm">AI Chat</span>
           </Link>
           <nav className="flex items-center gap-2">
             <ThemeToggle />
@@ -144,20 +120,15 @@ export default function HomePage() {
         <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-48 bg-linear-to-t from-background to-transparent" />
 
         <div className="relative z-10 flex w-full max-w-3xl flex-col items-center gap-4 text-center sm:gap-6">
-          <div className="flex items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-sm text-muted-foreground backdrop-blur">
-            <SparklesIcon className="size-3.5 text-primary" />
-            Powered by AI
-          </div>
-
           <h1 className="text-3xl font-bold tracking-tight sm:text-5xl md:text-6xl">
             What do you want
             <br />
-            <span className="text-muted-foreground">to build today?</span>
+            <span className="text-muted-foreground">to chat about today?</span>
           </h1>
 
           <p className="max-w-xl px-1 text-base text-muted-foreground sm:text-lg">
-            Your intelligent AI assistant, ready to help you code, think, and
-            create — in any language.
+            Your intelligent AI chat assistant, ready to help you converse,
+            explore ideas, and get answers — in any language.
           </p>
 
           {/* Hero prompt input */}
@@ -203,74 +174,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Recent conversations section */}
-      {conversations.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 sm:pb-24">
-          <div className="mb-5 flex items-center justify-between sm:mb-6">
-            <h2 className="text-lg font-semibold sm:text-xl">
-              Recent conversations
-            </h2>
-            <Link
-              href="/chat"
-              className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              View all
-              <ArrowRightIcon className="size-3.5" />
-            </Link>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {conversations.map((conv) => (
-              <Link
-                key={conv.id}
-                href={`/chat/${conv.id}`}
-                className="group flex flex-col gap-2 rounded-xl border bg-card p-4 text-card-foreground transition-all hover:border-primary/30 hover:shadow-md"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-                    <Logo className="size-4 text-muted-foreground" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-sm font-medium leading-snug">
-                      {conv.title}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {formatTime(conv.updatedAt)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                  Continue conversation
-                  <ArrowRightIcon className="size-3" />
-                </div>
-              </Link>
-            ))}
+      {/* Recent conversations removed from landing page */}
 
-            {/* New chat card */}
-            <button
-              onClick={() => router.push("/chat")}
-              className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-card/50 p-4 text-muted-foreground transition-all hover:border-primary/40 hover:bg-card hover:text-foreground hover:shadow-md"
-            >
-              <div className="flex size-8 items-center justify-center rounded-lg border border-dashed transition-colors group-hover:border-primary/40">
-                <ArrowRightIcon className="size-4" />
-              </div>
-              <span className="text-sm font-medium">New conversation</span>
-            </button>
-          </div>
-        </section>
-      )}
-
-      {/* Footer */}
-      <footer className="border-t py-6 sm:py-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-start gap-2 px-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div className="flex items-center gap-2">
-            <div className="flex size-6 items-center justify-center rounded-md bg-primary">
-              <Logo className="size-3.5 text-primary-foreground" />
-            </div>
-            AI Chat
-          </div>
-          <p>Built with Next.js &amp; Google Gemini</p>
-        </div>
-      </footer>
+      {/* Footer removed as requested */}
     </div>
   );
 }
