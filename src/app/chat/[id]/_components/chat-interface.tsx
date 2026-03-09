@@ -5,6 +5,7 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { Fragment, Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  AlertCircleIcon,
   CopyIcon,
   RefreshCcwIcon,
   ThumbsDownIcon,
@@ -134,12 +135,38 @@ export function ChatInterface({
     [conversationId, selectedModel],
   );
 
-  const { messages, sendMessage, status, stop, regenerate } = useChat({
+  const { messages, sendMessage, status, stop, regenerate, error } = useChat({
     messages: initialMessages,
     transport,
   });
 
   const isStreaming = status === "streaming";
+
+  const getErrorMessage = (err: Error): string => {
+    const msg = err.message.toLowerCase();
+    if (msg.includes("rate limit") || msg.includes("429") || msg.includes("too many requests")) {
+      return "Rate limit reached. Please wait a moment and try again.";
+    }
+    if (msg.includes("401") || msg.includes("unauthorized") || msg.includes("invalid api key") || msg.includes("authentication")) {
+      return "Invalid API key. Please check your credentials in Models & Keys.";
+    }
+    if (msg.includes("403") || msg.includes("forbidden")) {
+      return "Access denied. You may not have permission to use this model.";
+    }
+    if (msg.includes("quota") || msg.includes("billing") || msg.includes("insufficient_quota")) {
+      return "API quota exceeded. Please check your billing details with your AI provider.";
+    }
+    if (msg.includes("context length") || msg.includes("context window") || msg.includes("maximum context")) {
+      return "The conversation is too long for this model's context window.";
+    }
+    if (msg.includes("model not found") || msg.includes("model does not exist") || msg.includes("404")) {
+      return "The selected model is not available. Please verify your model selection.";
+    }
+    if (msg.includes("network") || msg.includes("fetch") || msg.includes("connection")) {
+      return "Network error. Please check your connection and try again.";
+    }
+    return err.message || "Something went wrong. Please try again.";
+  };
 
   // Send initial query from URL (e.g. from landing page hero input)
   // Wrapped in Suspense because useSearchParams() requires it in App Router
@@ -245,6 +272,23 @@ export function ChatInterface({
                 </MessageContent>
               </Message>
             )}
+
+          {error && status !== "streaming" && status !== "submitted" && (
+            <div className="mb-4 flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3.5">
+              <AlertCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-destructive">Error</p>
+                <p className="mt-0.5 text-sm text-destructive/80">{getErrorMessage(error)}</p>
+              </div>
+              <button
+                onClick={() => regenerate()}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-destructive/30 bg-background px-2.5 py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
+              >
+                <RefreshCcwIcon className="size-3" />
+                Retry
+              </button>
+            </div>
+          )}
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>

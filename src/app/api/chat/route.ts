@@ -112,22 +112,43 @@ export async function POST(req: Request) {
     }
   }
 
-  const result = streamText({
-    model: languageModel,
-    system: "You are a helpful assistant.",
-    messages: await convertToModelMessages(messages),
-    async onFinish({ text }) {
-      if (conversationId && text) {
-        await prisma.message.create({
-          data: { role: "assistant", content: text, conversationId },
-        });
-        await prisma.conversation.update({
-          where: { id: conversationId },
-          data: { updatedAt: new Date() },
-        });
-      }
-    },
-  });
+  try {
+    const result = streamText({
+      model: languageModel,
+      system: "You are a helpful assistant.",
+      messages: await convertToModelMessages(messages),
+      async onFinish({ text }) {
+        if (conversationId && text) {
+          await prisma.message.create({
+            data: { role: "assistant", content: text, conversationId },
+          });
+          await prisma.conversation.update({
+            where: { id: conversationId },
+            data: { updatedAt: new Date() },
+          });
+        }
+      },
+    });
 
-  return result.toUIMessageStreamResponse();
+    return result.toUIMessageStreamResponse();
+  } catch (error) {
+    const err = error as { status?: number; statusCode?: number; message?: string; responseBody?: string };
+    const status = err.status ?? err.statusCode ?? 500;
+    const body = err.responseBody ?? err.message ?? "An error occurred with the AI provider.";
+
+    if (status === 429) {
+      return new Response("Rate limit reached. Please wait a moment and try again.", { status: 429 });
+    }
+    if (status === 401) {
+      return new Response("Invalid API key. Please check your credentials.", { status: 401 });
+    }
+    if (status === 403) {
+      return new Response("Access denied. You may not have permission to use this model.", { status: 403 });
+    }
+    if (status === 404) {
+      return new Response("Model not found. Please verify your model selection.", { status: 404 });
+    }
+
+    return new Response(body, { status });
+  }
 }
