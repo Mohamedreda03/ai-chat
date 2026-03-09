@@ -39,13 +39,13 @@ export function ModelSelector({
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 flex-1 items-center gap-2">
       <Select
         value={selectValue || undefined}
         onValueChange={handleValueChange}
         disabled={loading || flatModels.length === 0}
       >
-        <SelectTrigger size="sm" className="max-w-[260px] min-w-[180px]">
+        <SelectTrigger size="sm" className="w-full min-w-0 sm:max-w-[260px] sm:min-w-[180px]">
           <SelectValue
             placeholder={
               loading ? "Loading models..." : "Add API key to use models"

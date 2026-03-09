@@ -94,6 +94,7 @@ export function CredentialForm({ onSave, loading }: CredentialFormProps) {
       <Button
         onClick={handleSave}
         disabled={!canSave || loading}
+        className="w-full sm:w-auto"
         data-testid="save-credential"
       >
         Save API key

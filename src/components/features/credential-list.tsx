@@ -32,12 +32,12 @@ export function CredentialList({ credentials, onDelete, loading }: CredentialLis
       {credentials.map((item) => (
         <div
           key={item.id}
-          className="flex items-center justify-between rounded-lg border px-3 py-2"
+          className="flex items-start justify-between gap-2 rounded-lg border px-3 py-2 sm:items-center"
           data-testid={`credential-${item.id}`}
         >
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-medium">{item.name}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="break-all text-xs text-muted-foreground">
               {kindLabels[item.kind]} - {item.keyHint}
             </p>
           </div>

@@ -13,7 +13,7 @@ export const CredentialFormSchema = z.object({
   name: z.string().min(1, "Platform name is required").max(100),
   kind: CredentialKindSchema,
   apiKey: z.string().min(1, "API key is required"),
-  baseUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
+  baseUrl: z.string().url("Invalid URL").optional().nullable().or(z.literal("")),
 });
 
 export type CredentialFormData = z.infer<typeof CredentialFormSchema>;
@@ -81,7 +81,7 @@ export const SaveCredentialRequestSchema = z.object({
   name: z.string().min(1, "Platform name is required"),
   kind: CredentialKindSchema,
   apiKey: z.string().min(1, "API key is required"),
-  baseUrl: z.string().url().optional().or(z.literal("")),
+  baseUrl: z.string().url().optional().nullable().or(z.literal("")),
 });
 
 export type SaveCredentialRequest = z.infer<typeof SaveCredentialRequestSchema>;

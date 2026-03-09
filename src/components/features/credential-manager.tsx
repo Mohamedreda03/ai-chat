@@ -54,12 +54,17 @@ export function CredentialManager({ onSaved }: CredentialManagerProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" data-testid="open-credential-manager">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full sm:w-auto"
+          data-testid="open-credential-manager"
+        >
           <KeyRoundIcon className="size-3.5" />
           Models & Keys
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-w-[calc(100%-1rem)] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Models & API keys</DialogTitle>
           <DialogDescription>
@@ -68,7 +73,7 @@ export function CredentialManager({ onSaved }: CredentialManagerProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="max-h-[75dvh] space-y-4 overflow-y-auto pr-1">
           <CredentialForm onSave={handleSave} loading={saving || loading} />
           <CredentialList
             credentials={credentials}

@@ -160,7 +160,7 @@ export function ChatInterface({
   };
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-full flex-col bg-background pt-14 md:pt-0">
       {/* Reads ?q= from URL and sends the initial message; must be in Suspense */}
       <Suspense fallback={null}>
         <InitialQuerySender
@@ -171,7 +171,7 @@ export function ChatInterface({
         />
       </Suspense>
       <Conversation className="min-h-0 flex-1">
-        <ConversationContent className="mx-auto w-full max-w-4xl px-4">
+        <ConversationContent className="mx-auto w-full max-w-4xl px-3 sm:px-4">
           {messages.length === 0 ? (
             <ConversationEmptyState
               icon={<Logo className="size-16 text-muted-foreground/30" />}
@@ -249,7 +249,7 @@ export function ChatInterface({
         <ConversationScrollButton />
       </Conversation>
 
-      <div className="mx-auto w-full max-w-4xl px-4 pb-4">
+      <div className="mx-auto w-full max-w-4xl px-3 pb-3 sm:px-4 sm:pb-4">
         <ModelControl
           value={selectedModel}
           onChange={setSelectedModel}
@@ -259,7 +259,7 @@ export function ChatInterface({
           onSubmit={handleSubmit}
           globalDrop
           multiple
-          inputGroupClassName="rounded-[50px]"
+          inputGroupClassName="rounded-[20px] sm:rounded-[50px]"
         >
           <PromptInputAttachmentHeader />
           <PromptInputFooter className="items-center px-3 py-3">
@@ -276,13 +276,13 @@ export function ChatInterface({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type your message..."
-              className="min-h-9 text-[17px]"
+              className="min-h-9 text-base sm:text-[17px]"
             />
             <PromptInputSubmit
               status={status}
               disabled={!selectedModel}
               onStop={stop}
-              className="rounded-full shrink-0 size-9"
+              className="shrink-0 size-9 rounded-full"
             />
           </PromptInputFooter>
         </PromptInput>

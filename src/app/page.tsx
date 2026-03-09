@@ -11,7 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logo } from "@/components/logo";
-import { ModelControl, type ModelSelectionValue } from "@/components/features/model-control";
+import { ModelControl } from "@/components/features/model-control";
 import { usePersistedModel } from "@/hooks/use-persisted-model";
 
 interface Conversation {
@@ -109,7 +109,7 @@ export default function HomePage() {
             : "bg-transparent",
         )}
       >
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:h-16 sm:px-6">
           <Link
             href="/"
             className="flex items-center gap-2.5 font-semibold tracking-tight"
@@ -117,15 +117,16 @@ export default function HomePage() {
             <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
               <Logo className="size-5 text-primary-foreground" />
             </div>
-            AI Chat
+            <span className="hidden sm:inline">AI Chat</span>
           </Link>
           <nav className="flex items-center gap-2">
             <ThemeToggle />
             <Link
               href="/chat"
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 sm:px-4"
             >
-              Start Chatting
+              <span className="hidden sm:inline">Start Chatting</span>
+              <span className="sm:hidden">Chat</span>
               <ArrowRightIcon className="size-3.5" />
             </Link>
           </nav>
@@ -133,7 +134,7 @@ export default function HomePage() {
       </header>
 
       {/* Hero */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 pt-16">
+      <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-4 pt-14 sm:px-6 sm:pt-16">
         {/* Dotted background */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.35]"
@@ -146,7 +147,7 @@ export default function HomePage() {
         {/* Gradient overlay bottom */}
         <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-48 bg-linear-to-t from-background to-transparent" />
 
-        <div className="relative z-10 flex w-full max-w-3xl flex-col items-center gap-6 text-center">
+        <div className="relative z-10 flex w-full max-w-3xl flex-col items-center gap-4 text-center sm:gap-6">
           <div className="flex items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-sm text-muted-foreground backdrop-blur">
             <SparklesIcon className="size-3.5 text-primary" />
             {selectedModel
@@ -154,13 +155,13 @@ export default function HomePage() {
               : "Connect a model to start"}
           </div>
 
-          <h1 className="text-5xl font-bold tracking-tight md:text-6xl">
+          <h1 className="text-3xl font-bold tracking-tight sm:text-5xl md:text-6xl">
             What do you want
             <br />
             <span className="text-muted-foreground">to build today?</span>
           </h1>
 
-          <p className="max-w-xl text-lg text-muted-foreground">
+          <p className="max-w-xl px-1 text-base text-muted-foreground sm:text-lg">
             Your intelligent AI assistant, ready to help you code, think, and
             create — in any language.
           </p>
@@ -168,7 +169,7 @@ export default function HomePage() {
           {/* Hero prompt input */}
           <div className="mt-2 w-full space-y-2">
             <ModelControl value={selectedModel} onChange={setSelectedModel} />
-            <div className="flex items-end gap-2 rounded-[24px] border bg-background px-4 py-3 shadow-lg ring-1 ring-transparent transition-all focus-within:ring-primary/20">
+            <div className="flex items-end gap-2 rounded-[20px] border bg-background px-3 py-2.5 shadow-lg ring-1 ring-transparent transition-all focus-within:ring-primary/20 sm:rounded-[24px] sm:px-4 sm:py-3">
               <textarea
                 ref={textareaRef}
                 rows={1}
@@ -177,7 +178,7 @@ export default function HomePage() {
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask me anything..."
-                className="min-h-8 w-full resize-none bg-transparent text-[17px] outline-none placeholder:text-muted-foreground"
+                className="min-h-8 w-full resize-none bg-transparent text-base outline-none placeholder:text-muted-foreground sm:text-[17px]"
                 style={{ maxHeight: "200px", overflowY: "auto" }}
               />
               <button
@@ -185,7 +186,7 @@ export default function HomePage() {
                 disabled={loading || !input.trim() || !selectedModel}
                 aria-label="Send"
                 className={cn(
-                  "flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all",
+                  "flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all sm:size-9",
                   loading || !input.trim()
                     ? "cursor-not-allowed opacity-50"
                     : "hover:opacity-90 active:scale-95",
@@ -203,9 +204,9 @@ export default function HomePage() {
 
       {/* Recent conversations section */}
       {conversations.length > 0 && (
-        <section className="mx-auto max-w-6xl px-6 pb-24">
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Recent conversations</h2>
+        <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 sm:pb-24">
+          <div className="mb-5 flex items-center justify-between sm:mb-6">
+            <h2 className="text-lg font-semibold sm:text-xl">Recent conversations</h2>
             <Link
               href="/chat"
               className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -256,8 +257,8 @@ export default function HomePage() {
       )}
 
       {/* Footer */}
-      <footer className="border-t py-8">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 text-sm text-muted-foreground">
+      <footer className="border-t py-6 sm:py-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-start gap-2 px-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="flex items-center gap-2">
             <div className="flex size-6 items-center justify-center rounded-md bg-primary">
               <Logo className="size-3.5 text-primary-foreground" />
