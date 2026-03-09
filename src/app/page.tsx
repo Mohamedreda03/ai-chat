@@ -3,11 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ArrowRightIcon,
-  ArrowUpIcon,
-  SparklesIcon,
-} from "lucide-react";
+import { ArrowRightIcon, ArrowUpIcon, SparklesIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logo } from "@/components/logo";
@@ -150,9 +146,7 @@ export default function HomePage() {
         <div className="relative z-10 flex w-full max-w-3xl flex-col items-center gap-4 text-center sm:gap-6">
           <div className="flex items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-sm text-muted-foreground backdrop-blur">
             <SparklesIcon className="size-3.5 text-primary" />
-            {selectedModel
-              ? `${selectedModel.modelLabel} - ${selectedModel.credentialName}`
-              : "Connect a model to start"}
+            Powered by AI
           </div>
 
           <h1 className="text-3xl font-bold tracking-tight sm:text-5xl md:text-6xl">
@@ -168,32 +162,39 @@ export default function HomePage() {
 
           {/* Hero prompt input */}
           <div className="mt-2 w-full space-y-2">
-            <ModelControl value={selectedModel} onChange={setSelectedModel} />
-            <div className="flex items-end gap-2 rounded-[20px] border bg-background px-3 py-2.5 shadow-lg ring-1 ring-transparent transition-all focus-within:ring-primary/20 sm:rounded-[24px] sm:px-4 sm:py-3">
-              <textarea
-                ref={textareaRef}
-                rows={1}
-                dir="auto"
-                value={input}
-                onChange={handleTextareaChange}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask me anything..."
-                className="min-h-8 w-full resize-none bg-transparent text-base outline-none placeholder:text-muted-foreground sm:text-[17px]"
-                style={{ maxHeight: "200px", overflowY: "auto" }}
-              />
-              <button
-                onClick={handleStart}
-                disabled={loading || !input.trim() || !selectedModel}
-                aria-label="Send"
-                className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all sm:size-9",
-                  loading || !input.trim()
-                    ? "cursor-not-allowed opacity-50"
-                    : "hover:opacity-90 active:scale-95",
-                )}
-              >
-                <ArrowUpIcon className="size-4" />
-              </button>
+            <div className="overflow-hidden rounded-[20px] border bg-background shadow-lg ring-1 ring-transparent transition-all focus-within:ring-primary/20 sm:rounded-[24px]">
+              <div className="flex items-end gap-2 px-3 py-2.5 sm:px-4 sm:py-3">
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  dir="auto"
+                  value={input}
+                  onChange={handleTextareaChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask me anything..."
+                  className="min-h-8 w-full resize-none bg-transparent text-base outline-none placeholder:text-muted-foreground sm:text-[17px]"
+                  style={{ maxHeight: "200px", overflowY: "auto" }}
+                />
+                <button
+                  onClick={handleStart}
+                  disabled={loading || !input.trim() || !selectedModel}
+                  aria-label="Send"
+                  className={cn(
+                    "flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all sm:size-9",
+                    loading || !input.trim()
+                      ? "cursor-not-allowed opacity-50"
+                      : "hover:opacity-90 active:scale-95",
+                  )}
+                >
+                  <ArrowUpIcon className="size-4" />
+                </button>
+              </div>
+              <div className="flex items-center gap-2 border-t px-3 py-2 sm:px-4">
+                <ModelControl
+                  value={selectedModel}
+                  onChange={setSelectedModel}
+                />
+              </div>
             </div>
             <p className="mt-2 text-center text-xs text-muted-foreground">
               Shift+Enter for new line · Enter to send
@@ -206,7 +207,9 @@ export default function HomePage() {
       {conversations.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 sm:pb-24">
           <div className="mb-5 flex items-center justify-between sm:mb-6">
-            <h2 className="text-lg font-semibold sm:text-xl">Recent conversations</h2>
+            <h2 className="text-lg font-semibold sm:text-xl">
+              Recent conversations
+            </h2>
             <Link
               href="/chat"
               className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { UIMessage } from "ai";
 import { ChatInterface } from "./_components/chat-interface";
+import { ErrorBoundary } from "@/components/shared/error-boundary";
 import prisma from "@/lib/prisma";
 import type { ModelSelectionValue } from "@/components/features/model-control";
 
@@ -46,10 +47,12 @@ export default async function ChatPage({
       : null;
 
   return (
-    <ChatInterface
-      conversationId={id}
-      initialMessages={initialMessages}
-      initialModel={initialModel}
-    />
+    <ErrorBoundary>
+      <ChatInterface
+        conversationId={id}
+        initialMessages={initialMessages}
+        initialModel={initialModel}
+      />
+    </ErrorBoundary>
   );
 }

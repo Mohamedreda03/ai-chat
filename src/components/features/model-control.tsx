@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { ModelSelector } from "@/components/features/model-selector";
-import { CredentialManager } from "@/components/features/credential-manager";
+import { InlineModelPicker } from "@/components/features/inline-model-picker";
 import { useModels } from "@/hooks/use-api";
 import { useFlatModels } from "@/hooks/use-flat-models";
 import type { ModelSelectionValue } from "@/types/api";
@@ -15,7 +14,11 @@ interface ModelControlProps {
   className?: string;
 }
 
-export function ModelControl({ value, onChange, className }: ModelControlProps) {
+export function ModelControl({
+  value,
+  onChange,
+  className,
+}: ModelControlProps) {
   const { modelData, loading, refresh } = useModels();
   const flatModels = useFlatModels(modelData);
 
@@ -34,7 +37,8 @@ export function ModelControl({ value, onChange, className }: ModelControlProps) 
     // Verify selected model still exists
     const stillExists = flatModels.some(
       (item) =>
-        item.credentialId === value.credentialId && item.modelId === value.modelId,
+        item.credentialId === value.credentialId &&
+        item.modelId === value.modelId,
     );
 
     if (!stillExists) onChange(flatModels[0]);
@@ -42,17 +46,14 @@ export function ModelControl({ value, onChange, className }: ModelControlProps) 
 
   return (
     <div className={className}>
-      <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-        <ModelSelector
-          value={value}
-          modelData={modelData}
-          flatModels={flatModels}
-          loading={loading}
-          onChange={onChange}
-          onRefresh={refresh}
-        />
-        <CredentialManager onSaved={refresh} />
-      </div>
+      <InlineModelPicker
+        value={value}
+        modelData={modelData}
+        flatModels={flatModels}
+        loading={loading}
+        onChange={onChange}
+        onRefresh={refresh}
+      />
     </div>
   );
 }

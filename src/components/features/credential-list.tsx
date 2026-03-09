@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import type { PublicCredential, CredentialKind } from "@/types/api";
 
 const kindLabels: Record<CredentialKind, string> = {
-  OPENAI_COMPATIBLE: "OpenAI-compatible",
+  OPENAI_COMPATIBLE: "OpenAI",
   ANTHROPIC: "Anthropic",
   GOOGLE: "Google Gemini",
 };
@@ -16,19 +16,19 @@ interface CredentialListProps {
   loading: boolean;
 }
 
-export function CredentialList({ credentials, onDelete, loading }: CredentialListProps) {
+export function CredentialList({
+  credentials,
+  onDelete,
+  loading,
+}: CredentialListProps) {
   if (credentials.length === 0) {
     return (
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium">Connected platforms</h3>
-        <p className="text-sm text-muted-foreground">No platform added yet.</p>
-      </div>
+      <p className="text-sm text-muted-foreground">No platform added yet.</p>
     );
   }
 
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-medium">Connected platforms</h3>
       {credentials.map((item) => (
         <div
           key={item.id}

@@ -9,6 +9,7 @@ import {
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
   PlusIcon,
+  SettingsIcon,
   Trash2Icon,
   XIcon,
 } from "lucide-react";
@@ -203,14 +204,24 @@ export function Sidebar() {
 
       <div className="border-t px-3 py-3">
         <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            onClick={() => setMobileOpen(false)}
-          >
-            <HomeIcon className="size-3.5" />
-            Home
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/"
+              className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              onClick={() => setMobileOpen(false)}
+            >
+              <HomeIcon className="size-3.5" />
+              Home
+            </Link>
+            <Link
+              href="/chat/settings"
+              className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              onClick={() => setMobileOpen(false)}
+            >
+              <SettingsIcon className="size-3.5" />
+              Settings
+            </Link>
+          </div>
           <ThemeToggle className="text-sidebar-foreground/60" />
         </div>
       </div>
@@ -272,7 +283,14 @@ export function Sidebar() {
             <HomeIcon className="size-4" />
           </Link>
 
-          <div className="mt-auto">
+          <div className="mt-auto flex flex-col items-center gap-1">
+            <Link
+              href="/chat/settings"
+              className="flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              aria-label="Settings"
+            >
+              <SettingsIcon className="size-4" />
+            </Link>
             <ThemeToggle className="text-sidebar-foreground/60" />
           </div>
         </div>

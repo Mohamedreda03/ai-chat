@@ -1,10 +1,12 @@
 "use client";
 
 import { Component, type ReactNode } from "react";
+import { AlertCircleIcon, RefreshCcwIcon } from "lucide-react";
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  onReset?: () => void;
 }
 
 interface State {
@@ -23,8 +25,13 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("Error boundary caught:", error, errorInfo);
+    console.error("[ErrorBoundary]", error, errorInfo);
   }
+
+  reset = () => {
+    this.setState({ hasError: false, error: undefined });
+    this.props.onReset?.();
+  };
 
   render() {
     if (this.state.hasError) {
@@ -33,20 +40,32 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 p-8">
-          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
-            <h2 className="mb-2 text-lg font-semibold text-destructive">
+        <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
+          <div className="w-full max-w-md rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center">
+            <div className="mb-3 flex justify-center">
+              <AlertCircleIcon className="size-8 text-destructive" />
+            </div>
+            <h2 className="mb-1 text-base font-semibold text-destructive">
               Something went wrong
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="mb-5 text-sm text-muted-foreground">
               {this.state.error?.message || "An unexpected error occurred"}
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:opacity-90"
-            >
-              Reload page
-            </button>
+            <div className="flex justify-center gap-2">
+              <button
+                onClick={this.reset}
+                className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
+              >
+                <RefreshCcwIcon className="size-3.5" />
+                Try again
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                Reload page
+              </button>
+            </div>
           </div>
         </div>
       );

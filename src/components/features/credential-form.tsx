@@ -25,7 +25,6 @@ interface CredentialFormProps {
 export function CredentialForm({ onSave, loading }: CredentialFormProps) {
   const [name, setName] = useState("");
   const [kind, setKind] = useState<CredentialKind>("OPENAI_COMPATIBLE");
-  const [baseUrl, setBaseUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
 
   const canSave = name.trim() && apiKey.trim();
@@ -37,13 +36,12 @@ export function CredentialForm({ onSave, loading }: CredentialFormProps) {
       name: name.trim(),
       kind,
       apiKey: apiKey.trim(),
-      baseUrl: baseUrl.trim() || null,
+      baseUrl: null,
     });
 
     // Reset form
     setName("");
     setApiKey("");
-    setBaseUrl("");
   };
 
   return (
@@ -65,22 +63,12 @@ export function CredentialForm({ onSave, loading }: CredentialFormProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="OPENAI_COMPATIBLE">OpenAI-compatible</SelectItem>
+            <SelectItem value="OPENAI_COMPATIBLE">OpenAI</SelectItem>
             <SelectItem value="ANTHROPIC">Anthropic</SelectItem>
             <SelectItem value="GOOGLE">Google Gemini</SelectItem>
           </SelectContent>
         </Select>
       </div>
-
-      {kind === "OPENAI_COMPATIBLE" && (
-        <Input
-          placeholder="Base URL (optional), e.g. https://api.openai.com/v1"
-          value={baseUrl}
-          onChange={(e) => setBaseUrl(e.target.value)}
-          disabled={loading}
-          data-testid="credential-baseurl"
-        />
-      )}
 
       <Input
         type="password"

@@ -13,13 +13,18 @@ import type { PublicCredential } from "@/types/api";
 import { CREDENTIAL_KINDS, type CredentialKind } from "@/lib/ai-platforms";
 
 const KIND_LABELS: Record<CredentialKind, string> = {
-  OPENAI_COMPATIBLE: "OpenAI-compatible",
+  OPENAI_COMPATIBLE: "OpenAI",
   ANTHROPIC: "Anthropic",
   GOOGLE: "Google Gemini",
 };
 
 interface CredentialFormProps {
-  onSave: (name: string, kind: string, apiKey: string, baseUrl: string | null) => Promise<boolean>;
+  onSave: (
+    name: string,
+    kind: string,
+    apiKey: string,
+    baseUrl: string | null,
+  ) => Promise<boolean>;
   isLoading: boolean;
   error: string | null;
 }
@@ -27,7 +32,11 @@ interface CredentialFormProps {
 /**
  * Form component for adding new credentials
  */
-export function CredentialForm({ onSave, isLoading, error }: CredentialFormProps) {
+export function CredentialForm({
+  onSave,
+  isLoading,
+  error,
+}: CredentialFormProps) {
   const [name, setName] = useState("");
   const [kind, setKind] = useState<CredentialKind>("OPENAI_COMPATIBLE");
   const [baseUrl, setBaseUrl] = useState("");
@@ -89,7 +98,10 @@ export function CredentialForm({ onSave, isLoading, error }: CredentialFormProps
         disabled={isLoading}
       />
 
-      <Button onClick={() => void handleSave()} disabled={!canSave || isLoading}>
+      <Button
+        onClick={() => void handleSave()}
+        disabled={!canSave || isLoading}
+      >
         Save API key
       </Button>
 

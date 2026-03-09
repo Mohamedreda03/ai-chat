@@ -64,13 +64,20 @@ export default function NewChatPage() {
       </Conversation>
 
       <div className="mx-auto w-full max-w-4xl px-3 pb-3 sm:px-4 sm:pb-4">
-        <ModelControl value={selectedModel} onChange={setSelectedModel} className="mb-2" />
         <PromptInput
           onSubmit={handleSubmit}
-          inputGroupClassName="rounded-[20px] sm:rounded-[50px]"
+          inputGroupClassName="rounded-[20px] sm:rounded-[24px]"
         >
-          <PromptInputFooter className="items-center px-3 py-3">
+          <PromptInputTextarea
+            dir="auto"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your message..."
+            className="min-h-9 px-3 pt-3 text-base sm:text-[17px]"
+          />
+          <PromptInputFooter className="items-center px-2 py-2">
             <PromptInputTools>
+              <ModelControl value={selectedModel} onChange={setSelectedModel} />
               <PromptInputActionMenu>
                 <PromptInputActionMenuTrigger />
                 <PromptInputActionMenuContent>
@@ -78,13 +85,6 @@ export default function NewChatPage() {
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
             </PromptInputTools>
-            <PromptInputTextarea
-              dir="auto"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              className="min-h-9 text-base sm:text-[17px]"
-            />
             <PromptInputSubmit
               status={sending ? "submitted" : undefined}
               disabled={!selectedModel}

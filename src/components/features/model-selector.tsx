@@ -45,14 +45,17 @@ export function ModelSelector({
         onValueChange={handleValueChange}
         disabled={loading || flatModels.length === 0}
       >
-        <SelectTrigger size="sm" className="w-full min-w-0 sm:max-w-[260px] sm:min-w-[180px]">
+        <SelectTrigger
+          size="sm"
+          className="w-full min-w-0 sm:max-w-65 sm:min-w-45"
+        >
           <SelectValue
             placeholder={
               loading ? "Loading models..." : "Add API key to use models"
             }
           />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="max-h-75">
           {modelData?.credentials.map((item) => (
             <div key={item.credential.id}>
               {item.models.map((model) => (
@@ -68,7 +71,12 @@ export function ModelSelector({
         </SelectContent>
       </Select>
 
-      <Button variant="ghost" size="icon-sm" onClick={onRefresh} disabled={loading}>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={onRefresh}
+        disabled={loading}
+      >
         <RefreshCcwIcon className="size-3.5" />
       </Button>
     </div>

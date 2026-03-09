@@ -2,7 +2,14 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { Fragment, Suspense, useEffect, useMemo, useState } from "react";
+import {
+  Fragment,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircleIcon,
@@ -53,7 +60,10 @@ import {
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import { ModelControl, type ModelSelectionValue } from "@/components/features/model-control";
+import {
+  ModelControl,
+  type ModelSelectionValue,
+} from "@/components/features/model-control";
 import { usePersistedModel } from "@/hooks/use-persisted-model";
 
 const PromptInputAttachmentsDisplay = () => {
@@ -122,17 +132,21 @@ export function ChatInterface({
   const [input, setInput] = useState("");
   const { selectedModel, setSelectedModel } = usePersistedModel(initialModel);
 
+  // Keep a ref so the transport body function always reads the latest model
+  const selectedModelRef = useRef(selectedModel);
+  selectedModelRef.current = selectedModel;
+
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        body: {
+        body: () => ({
           conversationId,
-          credentialId: selectedModel?.credentialId,
-          modelId: selectedModel?.modelId,
-          modelLabel: selectedModel?.modelLabel,
-        },
+          credentialId: selectedModelRef.current?.credentialId,
+          modelId: selectedModelRef.current?.modelId,
+          modelLabel: selectedModelRef.current?.modelLabel,
+        }),
       }),
-    [conversationId, selectedModel],
+    [conversationId],
   );
 
   const { messages, sendMessage, status, stop, regenerate, error } = useChat({
@@ -143,29 +157,62 @@ export function ChatInterface({
   const isStreaming = status === "streaming";
 
   const getErrorMessage = (err: Error): string => {
-    const msg = err.message.toLowerCase();
-    if (msg.includes("rate limit") || msg.includes("429") || msg.includes("too many requests")) {
+    // The API route now returns JSON { error: string } – parse it
+    let msg = err.message;
+    try {
+      const parsed = JSON.parse(msg) as { error?: string };
+      if (parsed?.error) msg = parsed.error;
+    } catch {
+      // plain text message, use as-is
+    }
+    const lower = msg.toLowerCase();
+    if (
+      lower.includes("rate limit") ||
+      lower.includes("429") ||
+      lower.includes("too many requests")
+    ) {
       return "Rate limit reached. Please wait a moment and try again.";
     }
-    if (msg.includes("401") || msg.includes("unauthorized") || msg.includes("invalid api key") || msg.includes("authentication")) {
-      return "Invalid API key. Please check your credentials in Models & Keys.";
+    if (
+      lower.includes("401") ||
+      lower.includes("unauthorized") ||
+      lower.includes("invalid api key") ||
+      lower.includes("authentication")
+    ) {
+      return "Invalid API key. Please check your credentials in Settings.";
     }
-    if (msg.includes("403") || msg.includes("forbidden")) {
+    if (lower.includes("403") || lower.includes("forbidden")) {
       return "Access denied. You may not have permission to use this model.";
     }
-    if (msg.includes("quota") || msg.includes("billing") || msg.includes("insufficient_quota")) {
+    if (
+      lower.includes("quota") ||
+      lower.includes("billing") ||
+      lower.includes("insufficient_quota")
+    ) {
       return "API quota exceeded. Please check your billing details with your AI provider.";
     }
-    if (msg.includes("context length") || msg.includes("context window") || msg.includes("maximum context")) {
+    if (
+      lower.includes("context length") ||
+      lower.includes("context window") ||
+      lower.includes("maximum context")
+    ) {
       return "The conversation is too long for this model's context window.";
     }
-    if (msg.includes("model not found") || msg.includes("model does not exist") || msg.includes("404")) {
+    if (
+      lower.includes("model not found") ||
+      lower.includes("model does not exist") ||
+      lower.includes("404")
+    ) {
       return "The selected model is not available. Please verify your model selection.";
     }
-    if (msg.includes("network") || msg.includes("fetch") || msg.includes("connection")) {
+    if (
+      lower.includes("network") ||
+      lower.includes("fetch") ||
+      lower.includes("connection")
+    ) {
       return "Network error. Please check your connection and try again.";
     }
-    return err.message || "Something went wrong. Please try again.";
+    return msg || "Something went wrong. Please try again.";
   };
 
   // Send initial query from URL (e.g. from landing page hero input)
@@ -278,7 +325,9 @@ export function ChatInterface({
               <AlertCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-destructive">Error</p>
-                <p className="mt-0.5 text-sm text-destructive/80">{getErrorMessage(error)}</p>
+                <p className="mt-0.5 text-sm text-destructive/80">
+                  {getErrorMessage(error)}
+                </p>
               </div>
               <button
                 onClick={() => regenerate()}
@@ -294,20 +343,23 @@ export function ChatInterface({
       </Conversation>
 
       <div className="mx-auto w-full max-w-4xl px-3 pb-3 sm:px-4 sm:pb-4">
-        <ModelControl
-          value={selectedModel}
-          onChange={setSelectedModel}
-          className="mb-2"
-        />
         <PromptInput
           onSubmit={handleSubmit}
           globalDrop
           multiple
-          inputGroupClassName="rounded-[20px] sm:rounded-[50px]"
+          inputGroupClassName="rounded-[20px] sm:rounded-[24px]"
         >
           <PromptInputAttachmentHeader />
-          <PromptInputFooter className="items-center px-3 py-3">
+          <PromptInputTextarea
+            dir="auto"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your message..."
+            className="min-h-9 px-3 pt-3 text-base sm:text-[17px]"
+          />
+          <PromptInputFooter className="items-center px-2 py-2">
             <PromptInputTools>
+              <ModelControl value={selectedModel} onChange={setSelectedModel} />
               <PromptInputActionMenu>
                 <PromptInputActionMenuTrigger />
                 <PromptInputActionMenuContent>
@@ -315,13 +367,6 @@ export function ChatInterface({
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
             </PromptInputTools>
-            <PromptInputTextarea
-              dir="auto"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              className="min-h-9 text-base sm:text-[17px]"
-            />
             <PromptInputSubmit
               status={status}
               disabled={!selectedModel}
