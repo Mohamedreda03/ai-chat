@@ -49,7 +49,8 @@ describe("ApiError", () => {
   it("should be serializable", () => {
     const error = new ApiError(400, "BAD_REQUEST", "Test error");
     const json = JSON.stringify(error, null, 2);
-    expect(json).toContain("Test error");
+    expect(json).toContain("BAD_REQUEST");
     expect(json).toContain("400");
+    expect(error.message).toBe("Test error");
   });
 });

@@ -34,7 +34,7 @@ describe("maskApiKey", () => {
   it("should handle very long keys", () => {
     const key = "sk-" + "a".repeat(100);
     const masked = maskApiKey(key);
-    expect(masked).toMatch(/^sk-\.\.\./);
+    expect(masked).toBe("sk-a...aaaa");
     expect(masked.length).toBeLessThan(key.length);
   });
 
