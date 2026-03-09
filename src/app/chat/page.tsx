@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/logo";
+import { ModelControl } from "@/components/features/model-control";
+import { usePersistedModel } from "@/hooks/use-persisted-model";
 
 import {
   Conversation,
@@ -26,15 +28,20 @@ export default function NewChatPage() {
   const router = useRouter();
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const { selectedModel, setSelectedModel } = usePersistedModel();
 
   const handleSubmit = async (message: PromptInputMessage) => {
     const text = message.text?.trim();
-    if (!text || sending) return;
+    if (!text || sending || !selectedModel) return;
     setSending(true);
     try {
       const res = await fetch("/api/conversations", {
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          credentialId: selectedModel.credentialId,
+          modelId: selectedModel.modelId,
+          modelLabel: selectedModel.modelLabel,
+        }),
         headers: { "Content-Type": "application/json" },
       });
       const conv = await res.json();
@@ -45,9 +52,9 @@ export default function NewChatPage() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-full flex-col bg-background pt-14 md:pt-0">
       <Conversation className="min-h-0 flex-1">
-        <ConversationContent className="mx-auto w-full max-w-4xl px-4">
+        <ConversationContent className="mx-auto w-full max-w-4xl px-3 sm:px-4">
           <ConversationEmptyState
             icon={<Logo className="size-16 text-muted-foreground/30" />}
             title=""
@@ -56,10 +63,11 @@ export default function NewChatPage() {
         </ConversationContent>
       </Conversation>
 
-      <div className="mx-auto w-full max-w-4xl px-4 pb-4">
+      <div className="mx-auto w-full max-w-4xl px-3 pb-3 sm:px-4 sm:pb-4">
+        <ModelControl value={selectedModel} onChange={setSelectedModel} className="mb-2" />
         <PromptInput
           onSubmit={handleSubmit}
-          inputGroupClassName="rounded-[50px]"
+          inputGroupClassName="rounded-[20px] sm:rounded-[50px]"
         >
           <PromptInputFooter className="items-center px-3 py-3">
             <PromptInputTools>
@@ -75,10 +83,11 @@ export default function NewChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type your message..."
-              className="min-h-9 text-[17px]"
+              className="min-h-9 text-base sm:text-[17px]"
             />
             <PromptInputSubmit
               status={sending ? "submitted" : undefined}
+              disabled={!selectedModel}
               className="shrink-0 size-9 rounded-full"
             />
           </PromptInputFooter>

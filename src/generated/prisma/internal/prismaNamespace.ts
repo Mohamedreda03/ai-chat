@@ -385,7 +385,8 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   Conversation: 'Conversation',
-  Message: 'Message'
+  Message: 'Message',
+  AICredential: 'AICredential'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -401,7 +402,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "conversation" | "message"
+    modelProps: "conversation" | "message" | "aICredential"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -553,6 +554,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AICredential: {
+      payload: Prisma.$AICredentialPayload<ExtArgs>
+      fields: Prisma.AICredentialFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AICredentialFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AICredentialPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AICredentialFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AICredentialPayload>
+        }
+        findFirst: {
+          args: Prisma.AICredentialFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AICredentialPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AICredentialFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AICredentialPayload>
+        }
+        findMany: {
+          args: Prisma.AICredentialFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AICredentialPayload>[]
+        }
+        create: {
+          args: Prisma.AICredentialCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AICredentialPayload>
+        }
+        createMany: {
+          args: Prisma.AICredentialCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AICredentialCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AICredentialPayload>[]
+        }
+        delete: {
+          args: Prisma.AICredentialDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AICredentialPayload>
+        }
+        update: {
+          args: Prisma.AICredentialUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AICredentialPayload>
+        }
+        deleteMany: {
+          args: Prisma.AICredentialDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AICredentialUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AICredentialUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AICredentialPayload>[]
+        }
+        upsert: {
+          args: Prisma.AICredentialUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AICredentialPayload>
+        }
+        aggregate: {
+          args: Prisma.AICredentialAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAICredential>
+        }
+        groupBy: {
+          args: Prisma.AICredentialGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AICredentialGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AICredentialCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AICredentialCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -593,7 +668,10 @@ export const ConversationScalarFieldEnum = {
   id: 'id',
   title: 'title',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  modelId: 'modelId',
+  modelLabel: 'modelLabel',
+  credentialId: 'credentialId'
 } as const
 
 export type ConversationScalarFieldEnum = (typeof ConversationScalarFieldEnum)[keyof typeof ConversationScalarFieldEnum]
@@ -610,12 +688,33 @@ export const MessageScalarFieldEnum = {
 export type MessageScalarFieldEnum = (typeof MessageScalarFieldEnum)[keyof typeof MessageScalarFieldEnum]
 
 
+export const AICredentialScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  kind: 'kind',
+  apiKey: 'apiKey',
+  baseUrl: 'baseUrl',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AICredentialScalarFieldEnum = (typeof AICredentialScalarFieldEnum)[keyof typeof AICredentialScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
 
@@ -635,6 +734,13 @@ export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
  * Reference to a field of type 'DateTime'
  */
 export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
+    
+
+
+/**
+ * Reference to a field of type 'CredentialKind'
+ */
+export type EnumCredentialKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CredentialKind'>
     
 
 
@@ -741,6 +847,7 @@ export type PrismaClientOptions = ({
 export type GlobalOmitConfig = {
   conversation?: Prisma.ConversationOmit
   message?: Prisma.MessageOmit
+  aICredential?: Prisma.AICredentialOmit
 }
 
 /* Types for Logging */

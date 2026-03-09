@@ -5,10 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   HomeIcon,
+  MenuIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
   PlusIcon,
   Trash2Icon,
+  XIcon,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -51,6 +53,7 @@ export function Sidebar() {
   const activeId = params?.id as string | undefined;
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -93,65 +96,52 @@ export function Sidebar() {
 
   const groups = groupConversations(conversations);
 
-  /* ── Collapsed state ── */
-  if (collapsed) {
-    return (
-      <div className="flex h-full w-13 flex-col items-center border-r bg-sidebar py-3 transition-all duration-200">
-        <button
-          onClick={() => toggleCollapsed(false)}
-          className="mb-3 flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          aria-label="Expand sidebar"
-        >
-          <PanelLeftOpenIcon className="size-4" />
-        </button>
+  const openConversation = (id: string) => {
+    router.push(`/chat/${id}`);
+    setMobileOpen(false);
+  };
 
-        <button
-          onClick={() => router.push("/chat")}
-          className="mb-1 flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          aria-label="New chat"
-        >
-          <PlusIcon className="size-4" />
-        </button>
+  const openNewChat = () => {
+    router.push("/chat");
+    setMobileOpen(false);
+  };
 
+  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <>
+      <div className="flex items-center justify-between px-3 py-3">
         <Link
           href="/"
-          className="flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          aria-label="Home"
+          className="flex items-center gap-2.5 px-1"
+          onClick={() => setMobileOpen(false)}
         >
-          <HomeIcon className="size-4" />
-        </Link>
-
-        <div className="mt-auto">
-          <ThemeToggle className="text-sidebar-foreground/60" />
-        </div>
-      </div>
-    );
-  }
-
-  /* ── Expanded state ── */
-  return (
-    <div className="flex h-full w-64 flex-col border-r bg-sidebar text-sidebar-foreground transition-all duration-200">
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-3">
-        <Link href="/" className="flex items-center gap-2.5 px-1">
           <div className="flex size-7 items-center justify-center rounded-md bg-primary">
             <Logo className="size-4 text-primary-foreground" />
           </div>
           <span className="text-sm font-semibold tracking-tight">AI Chat</span>
         </Link>
-        <button
-          onClick={() => toggleCollapsed(true)}
-          className="flex size-8 items-center justify-center rounded-lg text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          aria-label="Collapse sidebar"
-        >
-          <PanelLeftCloseIcon className="size-4" />
-        </button>
+
+        {isMobile ? (
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="flex size-8 items-center justify-center rounded-lg text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            aria-label="Close sidebar"
+          >
+            <XIcon className="size-4" />
+          </button>
+        ) : (
+          <button
+            onClick={() => toggleCollapsed(true)}
+            className="flex size-8 items-center justify-center rounded-lg text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            aria-label="Collapse sidebar"
+          >
+            <PanelLeftCloseIcon className="size-4" />
+          </button>
+        )}
       </div>
 
-      {/* New chat */}
       <div className="px-3 pb-3">
         <button
-          onClick={() => router.push("/chat")}
+          onClick={openNewChat}
           className="flex w-full items-center gap-2 rounded-lg border border-dashed border-sidebar-border px-3 py-2 text-sm text-sidebar-foreground/70 transition-all hover:border-primary/40 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           <PlusIcon className="size-4 shrink-0" />
@@ -159,7 +149,6 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Conversation list */}
       <ScrollArea className="flex-1">
         <div className="px-3 pb-3">
           {groups.length === 0 ? (
@@ -178,11 +167,11 @@ export function Sidebar() {
                       key={conv.id}
                       role="button"
                       tabIndex={0}
-                      onClick={() => router.push(`/chat/${conv.id}`)}
+                      onClick={() => openConversation(conv.id)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          router.push(`/chat/${conv.id}`);
+                          openConversation(conv.id);
                         }
                       }}
                       className={cn(
@@ -212,12 +201,12 @@ export function Sidebar() {
         </div>
       </ScrollArea>
 
-      {/* Footer */}
       <div className="border-t px-3 py-3">
         <div className="flex items-center justify-between">
           <Link
             href="/"
             className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            onClick={() => setMobileOpen(false)}
           >
             <HomeIcon className="size-3.5" />
             Home
@@ -225,6 +214,79 @@ export function Sidebar() {
           <ThemeToggle className="text-sidebar-foreground/60" />
         </div>
       </div>
-    </div>
+    </>
+  );
+
+  const MobileDrawer = () => (
+    <>
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="fixed top-3 left-3 z-40 flex size-9 items-center justify-center rounded-lg border bg-background/95 text-foreground shadow-sm backdrop-blur md:hidden"
+        aria-label="Open sidebar"
+      >
+        <MenuIcon className="size-4" />
+      </button>
+
+      {mobileOpen && (
+        <>
+          <button
+            className="fixed inset-0 z-40 bg-black/30 md:hidden"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close sidebar overlay"
+          />
+          <aside className="fixed inset-y-0 left-0 z-50 flex w-[84vw] max-w-72 flex-col border-r bg-sidebar text-sidebar-foreground shadow-xl md:hidden">
+            <SidebarContent isMobile />
+          </aside>
+        </>
+      )}
+    </>
+  );
+
+  /* ── Collapsed state ── */
+  if (collapsed) {
+    return (
+      <>
+        <MobileDrawer />
+        <div className="hidden h-full w-13 flex-col items-center border-r bg-sidebar py-3 transition-all duration-200 md:flex">
+          <button
+            onClick={() => toggleCollapsed(false)}
+            className="mb-3 flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            aria-label="Expand sidebar"
+          >
+            <PanelLeftOpenIcon className="size-4" />
+          </button>
+
+          <button
+            onClick={() => router.push("/chat")}
+            className="mb-1 flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            aria-label="New chat"
+          >
+            <PlusIcon className="size-4" />
+          </button>
+
+          <Link
+            href="/"
+            className="flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            aria-label="Home"
+          >
+            <HomeIcon className="size-4" />
+          </Link>
+
+          <div className="mt-auto">
+            <ThemeToggle className="text-sidebar-foreground/60" />
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  /* ── Expanded state ── */
+  return (
+    <>
+      <MobileDrawer />
+      <div className="hidden h-full w-64 flex-col border-r bg-sidebar text-sidebar-foreground transition-all duration-200 md:flex">
+        <SidebarContent />
+      </div>
+    </>
   );
 }

@@ -5,6 +5,7 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { Fragment, Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  AlertCircleIcon,
   CopyIcon,
   RefreshCcwIcon,
   ThumbsDownIcon,
@@ -52,6 +53,8 @@ import {
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
 import { Shimmer } from "@/components/ai-elements/shimmer";
+import { ModelControl, type ModelSelectionValue } from "@/components/features/model-control";
+import { usePersistedModel } from "@/hooks/use-persisted-model";
 
 const PromptInputAttachmentsDisplay = () => {
   const attachments = usePromptInputAttachments();
@@ -85,6 +88,7 @@ const PromptInputAttachmentHeader = () => {
 interface ChatInterfaceProps {
   conversationId: string;
   initialMessages: UIMessage[];
+  initialModel: ModelSelectionValue | null;
 }
 
 // Isolated component so useSearchParams is inside a Suspense boundary
@@ -113,19 +117,56 @@ function InitialQuerySender({
 export function ChatInterface({
   conversationId,
   initialMessages,
+  initialModel,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
+  const { selectedModel, setSelectedModel } = usePersistedModel(initialModel);
+
   const transport = useMemo(
-    () => new DefaultChatTransport({ body: { conversationId } }),
-    [conversationId],
+    () =>
+      new DefaultChatTransport({
+        body: {
+          conversationId,
+          credentialId: selectedModel?.credentialId,
+          modelId: selectedModel?.modelId,
+          modelLabel: selectedModel?.modelLabel,
+        },
+      }),
+    [conversationId, selectedModel],
   );
 
-  const { messages, sendMessage, status, stop, regenerate } = useChat({
+  const { messages, sendMessage, status, stop, regenerate, error } = useChat({
     messages: initialMessages,
     transport,
   });
 
   const isStreaming = status === "streaming";
+
+  const getErrorMessage = (err: Error): string => {
+    const msg = err.message.toLowerCase();
+    if (msg.includes("rate limit") || msg.includes("429") || msg.includes("too many requests")) {
+      return "Rate limit reached. Please wait a moment and try again.";
+    }
+    if (msg.includes("401") || msg.includes("unauthorized") || msg.includes("invalid api key") || msg.includes("authentication")) {
+      return "Invalid API key. Please check your credentials in Models & Keys.";
+    }
+    if (msg.includes("403") || msg.includes("forbidden")) {
+      return "Access denied. You may not have permission to use this model.";
+    }
+    if (msg.includes("quota") || msg.includes("billing") || msg.includes("insufficient_quota")) {
+      return "API quota exceeded. Please check your billing details with your AI provider.";
+    }
+    if (msg.includes("context length") || msg.includes("context window") || msg.includes("maximum context")) {
+      return "The conversation is too long for this model's context window.";
+    }
+    if (msg.includes("model not found") || msg.includes("model does not exist") || msg.includes("404")) {
+      return "The selected model is not available. Please verify your model selection.";
+    }
+    if (msg.includes("network") || msg.includes("fetch") || msg.includes("connection")) {
+      return "Network error. Please check your connection and try again.";
+    }
+    return err.message || "Something went wrong. Please try again.";
+  };
 
   // Send initial query from URL (e.g. from landing page hero input)
   // Wrapped in Suspense because useSearchParams() requires it in App Router
@@ -133,7 +174,7 @@ export function ChatInterface({
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
     const hasAttachments = Boolean(message.files?.length);
-    if (!(hasText || hasAttachments)) return;
+    if (!(hasText || hasAttachments) || !selectedModel) return;
     sendMessage({
       text: message.text || "Sent with attachments",
       files: message.files,
@@ -146,18 +187,18 @@ export function ChatInterface({
   };
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-full flex-col bg-background pt-14 md:pt-0">
       {/* Reads ?q= from URL and sends the initial message; must be in Suspense */}
       <Suspense fallback={null}>
         <InitialQuerySender
           conversationId={conversationId}
           onSend={(text) => {
-            if (messages.length === 0) sendMessage({ text });
+            if (messages.length === 0 && selectedModel) sendMessage({ text });
           }}
         />
       </Suspense>
       <Conversation className="min-h-0 flex-1">
-        <ConversationContent className="mx-auto w-full max-w-4xl px-4">
+        <ConversationContent className="mx-auto w-full max-w-4xl px-3 sm:px-4">
           {messages.length === 0 ? (
             <ConversationEmptyState
               icon={<Logo className="size-16 text-muted-foreground/30" />}
@@ -231,16 +272,38 @@ export function ChatInterface({
                 </MessageContent>
               </Message>
             )}
+
+          {error && status !== "streaming" && status !== "submitted" && (
+            <div className="mb-4 flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3.5">
+              <AlertCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-destructive">Error</p>
+                <p className="mt-0.5 text-sm text-destructive/80">{getErrorMessage(error)}</p>
+              </div>
+              <button
+                onClick={() => regenerate()}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-destructive/30 bg-background px-2.5 py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
+              >
+                <RefreshCcwIcon className="size-3" />
+                Retry
+              </button>
+            </div>
+          )}
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
 
-      <div className="mx-auto w-full max-w-4xl px-4 pb-4">
+      <div className="mx-auto w-full max-w-4xl px-3 pb-3 sm:px-4 sm:pb-4">
+        <ModelControl
+          value={selectedModel}
+          onChange={setSelectedModel}
+          className="mb-2"
+        />
         <PromptInput
           onSubmit={handleSubmit}
           globalDrop
           multiple
-          inputGroupClassName="rounded-[50px]"
+          inputGroupClassName="rounded-[20px] sm:rounded-[50px]"
         >
           <PromptInputAttachmentHeader />
           <PromptInputFooter className="items-center px-3 py-3">
@@ -257,12 +320,13 @@ export function ChatInterface({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type your message..."
-              className="min-h-9 text-[17px]"
+              className="min-h-9 text-base sm:text-[17px]"
             />
             <PromptInputSubmit
               status={status}
+              disabled={!selectedModel}
               onStop={stop}
-              className="rounded-full shrink-0 size-9"
+              className="shrink-0 size-9 rounded-full"
             />
           </PromptInputFooter>
         </PromptInput>
