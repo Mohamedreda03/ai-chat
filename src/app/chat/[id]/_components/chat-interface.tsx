@@ -52,6 +52,8 @@ import {
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
 import { Shimmer } from "@/components/ai-elements/shimmer";
+import { ModelControl, type ModelSelectionValue } from "@/components/features/model-control";
+import { usePersistedModel } from "@/hooks/use-persisted-model";
 
 const PromptInputAttachmentsDisplay = () => {
   const attachments = usePromptInputAttachments();
@@ -85,6 +87,7 @@ const PromptInputAttachmentHeader = () => {
 interface ChatInterfaceProps {
   conversationId: string;
   initialMessages: UIMessage[];
+  initialModel: ModelSelectionValue | null;
 }
 
 // Isolated component so useSearchParams is inside a Suspense boundary
@@ -113,11 +116,22 @@ function InitialQuerySender({
 export function ChatInterface({
   conversationId,
   initialMessages,
+  initialModel,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
+  const { selectedModel, setSelectedModel } = usePersistedModel(initialModel);
+
   const transport = useMemo(
-    () => new DefaultChatTransport({ body: { conversationId } }),
-    [conversationId],
+    () =>
+      new DefaultChatTransport({
+        body: {
+          conversationId,
+          credentialId: selectedModel?.credentialId,
+          modelId: selectedModel?.modelId,
+          modelLabel: selectedModel?.modelLabel,
+        },
+      }),
+    [conversationId, selectedModel],
   );
 
   const { messages, sendMessage, status, stop, regenerate } = useChat({
@@ -133,7 +147,7 @@ export function ChatInterface({
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
     const hasAttachments = Boolean(message.files?.length);
-    if (!(hasText || hasAttachments)) return;
+    if (!(hasText || hasAttachments) || !selectedModel) return;
     sendMessage({
       text: message.text || "Sent with attachments",
       files: message.files,
@@ -152,7 +166,7 @@ export function ChatInterface({
         <InitialQuerySender
           conversationId={conversationId}
           onSend={(text) => {
-            if (messages.length === 0) sendMessage({ text });
+            if (messages.length === 0 && selectedModel) sendMessage({ text });
           }}
         />
       </Suspense>
@@ -236,6 +250,11 @@ export function ChatInterface({
       </Conversation>
 
       <div className="mx-auto w-full max-w-4xl px-4 pb-4">
+        <ModelControl
+          value={selectedModel}
+          onChange={setSelectedModel}
+          className="mb-2"
+        />
         <PromptInput
           onSubmit={handleSubmit}
           globalDrop
@@ -261,6 +280,7 @@ export function ChatInterface({
             />
             <PromptInputSubmit
               status={status}
+              disabled={!selectedModel}
               onStop={stop}
               className="rounded-full shrink-0 size-9"
             />

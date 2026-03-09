@@ -10,4 +10,5 @@
  */
 export type * from './models/Conversation'
 export type * from './models/Message'
+export type * from './models/AICredential'
 export type * from './commonInputTypes'

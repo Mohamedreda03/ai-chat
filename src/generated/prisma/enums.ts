@@ -9,7 +9,10 @@
 * 🟢 You can import this file directly.
 */
 
+export const CredentialKind = {
+  OPENAI_COMPATIBLE: 'OPENAI_COMPATIBLE',
+  ANTHROPIC: 'ANTHROPIC',
+  GOOGLE: 'GOOGLE'
+} as const
 
-
-// This file is empty because there are no enums in the schema.
-export {}
+export type CredentialKind = (typeof CredentialKind)[keyof typeof CredentialKind]

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { UIMessage } from "ai";
 import { ChatInterface } from "./_components/chat-interface";
 import prisma from "@/lib/prisma";
+import type { ModelSelectionValue } from "@/components/features/model-control";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,12 @@ export default async function ChatPage({
   const conversation = await prisma.conversation.findUnique({
     where: { id },
     include: {
+      credential: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       messages: { orderBy: { createdAt: "asc" } },
     },
   });
@@ -28,7 +35,21 @@ export default async function ChatPage({
     parts: [{ type: "text" as const, text: m.content }],
   }));
 
+  const initialModel: ModelSelectionValue | null =
+    conversation.credentialId && conversation.modelId && conversation.credential
+      ? {
+          credentialId: conversation.credentialId,
+          credentialName: conversation.credential.name,
+          modelId: conversation.modelId,
+          modelLabel: conversation.modelLabel || conversation.modelId,
+        }
+      : null;
+
   return (
-    <ChatInterface conversationId={id} initialMessages={initialMessages} />
+    <ChatInterface
+      conversationId={id}
+      initialMessages={initialMessages}
+      initialModel={initialModel}
+    />
   );
 }

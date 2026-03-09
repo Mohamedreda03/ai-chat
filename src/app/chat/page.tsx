@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/logo";
+import { ModelControl, type ModelSelectionValue } from "@/components/features/model-control";
+import { usePersistedModel } from "@/hooks/use-persisted-model";
 
 import {
   Conversation,
@@ -26,15 +28,20 @@ export default function NewChatPage() {
   const router = useRouter();
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const { selectedModel, setSelectedModel } = usePersistedModel();
 
   const handleSubmit = async (message: PromptInputMessage) => {
     const text = message.text?.trim();
-    if (!text || sending) return;
+    if (!text || sending || !selectedModel) return;
     setSending(true);
     try {
       const res = await fetch("/api/conversations", {
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          credentialId: selectedModel.credentialId,
+          modelId: selectedModel.modelId,
+          modelLabel: selectedModel.modelLabel,
+        }),
         headers: { "Content-Type": "application/json" },
       });
       const conv = await res.json();
@@ -57,6 +64,7 @@ export default function NewChatPage() {
       </Conversation>
 
       <div className="mx-auto w-full max-w-4xl px-4 pb-4">
+        <ModelControl value={selectedModel} onChange={setSelectedModel} className="mb-2" />
         <PromptInput
           onSubmit={handleSubmit}
           inputGroupClassName="rounded-[50px]"
@@ -79,6 +87,7 @@ export default function NewChatPage() {
             />
             <PromptInputSubmit
               status={sending ? "submitted" : undefined}
+              disabled={!selectedModel}
               className="shrink-0 size-9 rounded-full"
             />
           </PromptInputFooter>

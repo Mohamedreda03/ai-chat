@@ -27,3 +27,8 @@ export type Conversation = Prisma.ConversationModel
  * 
  */
 export type Message = Prisma.MessageModel
+/**
+ * Model AICredential
+ * 
+ */
+export type AICredential = Prisma.AICredentialModel

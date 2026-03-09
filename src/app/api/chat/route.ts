@@ -1,18 +1,21 @@
-import { google } from "@ai-sdk/google";
-import {
-  streamText,
-  generateText,
-  UIMessage,
-  convertToModelMessages,
-} from "ai";
+import { streamText, generateText, UIMessage, convertToModelMessages } from "ai";
 import prisma from "@/lib/prisma";
+import { buildLanguageModel } from "@/lib/ai-platforms";
 
 export const maxDuration = 60;
 
-async function generateTitle(message: string): Promise<string> {
+type ChatBody = {
+  messages: UIMessage[];
+  conversationId?: string;
+  credentialId?: string;
+  modelId?: string;
+  modelLabel?: string;
+};
+
+async function generateTitle(message: string, model: ReturnType<typeof buildLanguageModel>): Promise<string> {
   try {
     const { text } = await generateText({
-      model: google("gemini-2.5-flash"),
+      model,
       prompt: `Generate a very short, concise title (3-6 words max) for a conversation starting with this message. Return ONLY the title text, no quotes, no extra punctuation:\n\n${message}`,
     });
     return text.trim().slice(0, 60) || message.slice(0, 60);
@@ -22,12 +25,68 @@ async function generateTitle(message: string): Promise<string> {
 }
 
 export async function POST(req: Request) {
-  const {
-    messages,
-    conversationId,
-  }: { messages: UIMessage[]; conversationId?: string } = await req.json();
+  const { messages, conversationId, credentialId, modelId, modelLabel }: ChatBody =
+    await req.json();
 
-  // Persist the last user message
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return new Response("Messages are required", { status: 400 });
+  }
+
+  const conversation = conversationId
+    ? await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        select: {
+          id: true,
+          title: true,
+          credentialId: true,
+          modelId: true,
+          modelLabel: true,
+        },
+      })
+    : null;
+
+  const activeCredentialId = credentialId ?? conversation?.credentialId ?? null;
+  const activeModelId = modelId ?? conversation?.modelId ?? null;
+  const activeModelLabel = modelLabel ?? conversation?.modelLabel ?? null;
+
+  if (!activeCredentialId || !activeModelId) {
+    return new Response("Select a model and connect an API key first.", {
+      status: 400,
+    });
+  }
+
+  const credential = await prisma.aICredential.findUnique({
+    where: { id: activeCredentialId },
+    select: {
+      id: true,
+      kind: true,
+      apiKey: true,
+      baseUrl: true,
+    },
+  });
+
+  if (!credential) {
+    return new Response("Selected AI credential was not found.", { status: 400 });
+  }
+
+  if (conversationId && (credentialId || modelId || modelLabel)) {
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: {
+        credentialId: activeCredentialId,
+        modelId: activeModelId,
+        modelLabel: activeModelLabel || activeModelId,
+      },
+    });
+  }
+
+  const languageModel = buildLanguageModel({
+    kind: credential.kind,
+    apiKey: credential.apiKey,
+    baseUrl: credential.baseUrl,
+    modelId: activeModelId,
+  });
+
   if (conversationId) {
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     if (lastUser) {
@@ -40,13 +99,8 @@ export async function POST(req: Request) {
         data: { role: "user", content: textContent, conversationId },
       });
 
-      // Auto-title: generate a concise AI title from the first user message
-      const conv = await prisma.conversation.findUnique({
-        where: { id: conversationId },
-        select: { title: true },
-      });
-      if (conv?.title === "New Conversation" && textContent) {
-        generateTitle(textContent).then((title) => {
+      if (conversation?.title === "New Conversation" && textContent) {
+        generateTitle(textContent, languageModel).then((title) => {
           prisma.conversation
             .update({
               where: { id: conversationId },
@@ -59,7 +113,7 @@ export async function POST(req: Request) {
   }
 
   const result = streamText({
-    model: google("gemini-2.5-flash"),
+    model: languageModel,
     system: "You are a helpful assistant.",
     messages: await convertToModelMessages(messages),
     async onFinish({ text }) {

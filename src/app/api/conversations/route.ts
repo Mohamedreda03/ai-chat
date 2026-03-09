@@ -12,9 +12,21 @@ export async function GET() {
 
 // POST /api/conversations — create a new conversation
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
+  const body =
+    (await req.json().catch(() => ({}))) as {
+      title?: string;
+      credentialId?: string;
+      modelId?: string;
+      modelLabel?: string;
+    };
+
   const conversation = await prisma.conversation.create({
-    data: { title: body.title ?? "New Conversation" },
+    data: {
+      title: body.title ?? "New Conversation",
+      credentialId: body.credentialId ?? null,
+      modelId: body.modelId ?? null,
+      modelLabel: body.modelLabel ?? null,
+    },
   });
   return NextResponse.json(conversation, { status: 201 });
 }

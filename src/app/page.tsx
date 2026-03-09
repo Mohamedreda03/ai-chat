@@ -11,6 +11,8 @@ import {
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logo } from "@/components/logo";
+import { ModelControl, type ModelSelectionValue } from "@/components/features/model-control";
+import { usePersistedModel } from "@/hooks/use-persisted-model";
 
 interface Conversation {
   id: string;
@@ -39,6 +41,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const { selectedModel, setSelectedModel } = usePersistedModel();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -61,11 +64,17 @@ export default function HomePage() {
       router.push("/chat");
       return;
     }
+    if (!selectedModel) return;
+
     setLoading(true);
     try {
       const res = await fetch("/api/conversations", {
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          credentialId: selectedModel?.credentialId,
+          modelId: selectedModel?.modelId,
+          modelLabel: selectedModel?.modelLabel,
+        }),
         headers: { "Content-Type": "application/json" },
       });
       const conv = await res.json();
@@ -140,7 +149,9 @@ export default function HomePage() {
         <div className="relative z-10 flex w-full max-w-3xl flex-col items-center gap-6 text-center">
           <div className="flex items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-sm text-muted-foreground backdrop-blur">
             <SparklesIcon className="size-3.5 text-primary" />
-            Powered by Google Gemini
+            {selectedModel
+              ? `${selectedModel.modelLabel} - ${selectedModel.credentialName}`
+              : "Connect a model to start"}
           </div>
 
           <h1 className="text-5xl font-bold tracking-tight md:text-6xl">
@@ -155,7 +166,8 @@ export default function HomePage() {
           </p>
 
           {/* Hero prompt input */}
-          <div className="mt-2 w-full">
+          <div className="mt-2 w-full space-y-2">
+            <ModelControl value={selectedModel} onChange={setSelectedModel} />
             <div className="flex items-end gap-2 rounded-[24px] border bg-background px-4 py-3 shadow-lg ring-1 ring-transparent transition-all focus-within:ring-primary/20">
               <textarea
                 ref={textareaRef}
@@ -170,7 +182,7 @@ export default function HomePage() {
               />
               <button
                 onClick={handleStart}
-                disabled={loading || !input.trim()}
+                disabled={loading || !input.trim() || !selectedModel}
                 aria-label="Send"
                 className={cn(
                   "flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all",
