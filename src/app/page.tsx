@@ -247,6 +247,7 @@ export default function HomePage() {
               onSubmit={handleSubmit}
               multiple
               globalDrop
+              className="bg-background"
               inputGroupClassName="rounded-[20px] sm:rounded-[24px] shadow-lg"
             >
               <AttachmentHeader />
