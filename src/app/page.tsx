@@ -1,25 +1,92 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRightIcon, ArrowUpIcon, SparklesIcon } from "lucide-react";
+import { ArrowRightIcon } from "lucide-react";
+import type { FileUIPart } from "ai";
+import { XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logo } from "@/components/logo";
 import { ModelControl } from "@/components/features/model-control";
 import { usePersistedModel } from "@/hooks/use-persisted-model";
+import {
+  PromptInput,
+  PromptInputActionAddAttachments,
+  PromptInputActionMenu,
+  PromptInputActionMenuContent,
+  PromptInputActionMenuTrigger,
+  PromptInputFooter,
+  PromptInputHeader,
+  type PromptInputMessage,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputTools,
+  usePromptInputAttachments,
+} from "@/components/ai-elements/prompt-input";
+import {
+  Attachment,
+  AttachmentPreview,
+  AttachmentRemove,
+  Attachments,
+} from "@/components/ai-elements/attachments";
 
 // Landing page for the AI Chat application
+
+// Shows attached files above the textarea
+const AttachmentHeader = () => {
+  const attachments = usePromptInputAttachments();
+  if (attachments.files.length === 0) return null;
+  return (
+    <PromptInputHeader>
+      <div className="flex flex-wrap gap-1.5 px-1">
+        {attachments.files.map((f) => {
+          const isImage =
+            f.type === "file" && f.mediaType?.startsWith("image/");
+          if (isImage) {
+            return (
+              <div
+                key={f.id}
+                className="relative size-14 shrink-0 overflow-hidden rounded-xl"
+              >
+                <img
+                  src={f.url}
+                  alt={f.filename ?? "Image"}
+                  className="size-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => attachments.remove(f.id)}
+                  className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-black/60"
+                  aria-label="Remove"
+                >
+                  <XIcon className="size-2.5 text-white" />
+                </button>
+              </div>
+            );
+          }
+          return (
+            <Attachments key={f.id} variant="inline">
+              <Attachment data={f} onRemove={() => attachments.remove(f.id)}>
+                <AttachmentPreview />
+                <AttachmentRemove />
+              </Attachment>
+            </Attachments>
+          );
+        })}
+      </div>
+    </PromptInputHeader>
+  );
+};
 
 export default function HomePage() {
   const router = useRouter();
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   const { selectedModel, setSelectedModel } = usePersistedModel();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -27,47 +94,90 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // No recent conversations shown on the landing page by design
+  const handleSubmit = async (message: PromptInputMessage) => {
+    const text = message.text?.trim() ?? "";
+    const hasFiles = (message.files?.length ?? 0) > 0;
+    if ((!text && !hasFiles) || sending) return;
 
-  const handleStart = async () => {
-    if (loading) return;
-    const text = input.trim();
-    if (!text) {
+    // If no model selected and no files, just navigate to /chat
+    if (!text && !hasFiles) {
+      router.push("/chat");
+      return;
+    }
+    if (!selectedModel && !hasFiles) {
       router.push("/chat");
       return;
     }
     if (!selectedModel) return;
 
-    setLoading(true);
+    setSending(true);
     try {
+      // Upload files to server first so their URLs survive the navigation
+      let uploadedFiles: FileUIPart[] = [];
+      if (message.files?.length) {
+        uploadedFiles = await Promise.all(
+          message.files.map(async (file) => {
+            if (file.url.startsWith("/uploads/")) return file;
+            try {
+              const blob = await fetch(file.url).then((r) => r.blob());
+              const form = new FormData();
+              form.append(
+                "file",
+                new File([blob], file.filename ?? "file", {
+                  type: file.mediaType,
+                }),
+              );
+              const res = await fetch("/api/upload", {
+                method: "POST",
+                body: form,
+              });
+              if (!res.ok) return file;
+              const data = (await res.json()) as {
+                url: string;
+                filename: string;
+                mediaType: string;
+              };
+              return {
+                type: "file" as const,
+                url: data.url,
+                filename: data.filename,
+                mediaType: data.mediaType,
+              };
+            } catch {
+              return file;
+            }
+          }),
+        );
+      }
+
       const res = await fetch("/api/conversations", {
         method: "POST",
         body: JSON.stringify({
-          credentialId: selectedModel?.credentialId,
-          modelId: selectedModel?.modelId,
-          modelLabel: selectedModel?.modelLabel,
+          credentialId: selectedModel.credentialId,
+          modelId: selectedModel.modelId,
+          modelLabel: selectedModel.modelLabel,
         }),
         headers: { "Content-Type": "application/json" },
       });
       const conv = await res.json();
-      router.push(`/chat/${conv.id}?q=${encodeURIComponent(text)}`);
+
+      // Store uploaded files in sessionStorage — chat-interface will pick them up
+      if (uploadedFiles.length > 0) {
+        try {
+          sessionStorage.setItem(
+            `pending-files-${conv.id}`,
+            JSON.stringify(uploadedFiles),
+          );
+        } catch {
+          // sessionStorage not available
+        }
+      }
+
+      const qs = text ? `?q=${encodeURIComponent(text)}` : "";
+      router.push(`/chat/${conv.id}${qs}`);
     } catch {
-      setLoading(false);
+      setSending(false);
     }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      if (input.trim()) handleStart();
-    }
-  };
-
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-    const el = e.target;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
   };
 
   return (
@@ -106,7 +216,7 @@ export default function HomePage() {
       </header>
 
       {/* Hero */}
-      <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-4 pt-14 sm:px-6 sm:pt-16">
+      <section className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 pt-14 sm:px-6 sm:pt-16">
         {/* Dotted background */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.35]"
@@ -132,51 +242,49 @@ export default function HomePage() {
           </p>
 
           {/* Hero prompt input */}
-          <div className="mt-2 w-full space-y-2">
-            <div className="overflow-hidden rounded-[20px] border bg-background shadow-lg ring-1 ring-transparent transition-all focus-within:ring-primary/20 sm:rounded-[24px]">
-              <div className="flex items-end gap-2 px-3 py-2.5 sm:px-4 sm:py-3">
-                <textarea
-                  ref={textareaRef}
-                  rows={1}
-                  dir="auto"
-                  value={input}
-                  onChange={handleTextareaChange}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask me anything..."
-                  className="min-h-8 w-full resize-none bg-transparent text-base outline-none placeholder:text-muted-foreground sm:text-[17px]"
-                  style={{ maxHeight: "200px", overflowY: "auto" }}
-                />
-                <button
-                  onClick={handleStart}
-                  disabled={loading || !input.trim() || !selectedModel}
+          <div className="mt-2 w-full">
+            <PromptInput
+              onSubmit={handleSubmit}
+              multiple
+              globalDrop
+              inputGroupClassName="rounded-[20px] sm:rounded-[24px] shadow-lg"
+            >
+              <AttachmentHeader />
+              <PromptInputTextarea
+                dir="auto"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask me anything..."
+                className="min-h-9 px-3 pt-3 text-base sm:text-[17px]"
+              />
+              <PromptInputFooter className="items-center px-2 py-2">
+                <PromptInputTools>
+                  <ModelControl
+                    value={selectedModel}
+                    onChange={setSelectedModel}
+                  />
+                  <PromptInputActionMenu>
+                    <PromptInputActionMenuTrigger />
+                    <PromptInputActionMenuContent>
+                      <PromptInputActionAddAttachments />
+                    </PromptInputActionMenuContent>
+                  </PromptInputActionMenu>
+                </PromptInputTools>
+                <PromptInputSubmit
                   aria-label="Send"
-                  className={cn(
-                    "flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all sm:size-9",
-                    loading || !input.trim()
-                      ? "cursor-not-allowed opacity-50"
-                      : "hover:opacity-90 active:scale-95",
-                  )}
-                >
-                  <ArrowUpIcon className="size-4" />
-                </button>
-              </div>
-              <div className="flex items-center gap-2 border-t px-3 py-2 sm:px-4">
-                <ModelControl
-                  value={selectedModel}
-                  onChange={setSelectedModel}
+                  status={sending ? "submitted" : undefined}
+                  disabled={!selectedModel}
+                  className="size-9 shrink-0 rounded-full"
                 />
-              </div>
-            </div>
+              </PromptInputFooter>
+            </PromptInput>
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              Shift+Enter for new line · Enter to send
+              Shift+Enter for new line · Enter to send · Attach files with the
+              menu
             </p>
           </div>
         </div>
       </section>
-
-      {/* Recent conversations removed from landing page */}
-
-      {/* Footer removed as requested */}
     </div>
   );
 }
