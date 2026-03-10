@@ -32,6 +32,6 @@ export async function PATCH(req: Request, { params }: Params) {
 // DELETE /api/conversations/[id]
 export async function DELETE(_req: Request, { params }: Params) {
   const { id } = await params;
-  await prisma.conversation.delete({ where: { id } });
+  await prisma.conversation.deleteMany({ where: { id } });
   return new NextResponse(null, { status: 204 });
 }

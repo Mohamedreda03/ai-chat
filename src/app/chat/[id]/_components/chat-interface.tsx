@@ -15,6 +15,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircleIcon,
   CopyIcon,
+  DownloadIcon,
+  EllipsisVerticalIcon,
   RefreshCcwIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
@@ -68,6 +70,12 @@ import {
   type ModelSelectionValue,
 } from "@/components/features/model-control";
 import { usePersistedModel } from "@/hooks/use-persisted-model";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const PromptInputAttachmentsDisplay = () => {
   const attachments = usePromptInputAttachments();
@@ -356,8 +364,59 @@ export function ChatInterface({
     navigator.clipboard.writeText(content);
   };
 
+  const handleExport = () => {
+    const lines: string[] = [];
+    lines.push(`# Conversation Export`);
+    lines.push(`\n_Exported on ${new Date().toLocaleDateString()}_`);
+    lines.push(`\n---`);
+    for (const message of messages) {
+      const role = message.role === "user" ? "**You**" : "**Assistant**";
+      lines.push(`\n### ${role}\n`);
+      for (const part of message.parts) {
+        if (part.type === "text") {
+          lines.push(part.text);
+        } else if (part.type === "reasoning") {
+          lines.push(
+            `\n<details>\n<summary>Reasoning</summary>\n\n${part.text}\n</details>`,
+          );
+        }
+      }
+    }
+    const content = lines.join("\n");
+    const blob = new Blob([content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `conversation-${conversationId}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="flex h-full flex-col bg-background pt-14 md:pt-0">
+      {/* Top-right action menu */}
+      <div className="absolute right-8 top-3 z-10">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              aria-label="Conversation options"
+              className="flex size-8 items-center justify-center rounded-lg border bg-background/80 text-foreground/60 shadow-sm backdrop-blur transition-colors hover:text-foreground"
+            >
+              <EllipsisVerticalIcon className="size-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={handleExport}
+              disabled={messages.length === 0}
+            >
+              <DownloadIcon className="mr-2 size-4" />
+              Export as Markdown
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       {/* Reads ?q= from URL and sends the initial message; must be in Suspense */}
       <Suspense fallback={null}>
         <InitialQuerySender

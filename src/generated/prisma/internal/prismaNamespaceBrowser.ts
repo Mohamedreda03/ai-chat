@@ -53,7 +53,8 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   Conversation: 'Conversation',
   Message: 'Message',
-  AICredential: 'AICredential'
+  AICredential: 'AICredential',
+  UserSettings: 'UserSettings'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -108,6 +109,15 @@ export const AICredentialScalarFieldEnum = {
 } as const
 
 export type AICredentialScalarFieldEnum = (typeof AICredentialScalarFieldEnum)[keyof typeof AICredentialScalarFieldEnum]
+
+
+export const UserSettingsScalarFieldEnum = {
+  id: 'id',
+  systemPrompt: 'systemPrompt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserSettingsScalarFieldEnum = (typeof UserSettingsScalarFieldEnum)[keyof typeof UserSettingsScalarFieldEnum]
 
 
 export const SortOrder = {

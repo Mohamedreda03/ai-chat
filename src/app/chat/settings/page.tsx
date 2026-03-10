@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeftIcon,
   KeyRoundIcon,
+  MessageSquareTextIcon,
   ServerIcon,
   Trash2Icon,
   AlertTriangleIcon,
@@ -30,6 +31,36 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
+
+  // Custom Instructions
+  const [systemPrompt, setSystemPrompt] = useState("");
+  const [promptSaving, setPromptSaving] = useState(false);
+  const [promptSaved, setPromptSaved] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((d: { systemPrompt?: string }) =>
+        setSystemPrompt(d.systemPrompt ?? ""),
+      )
+      .catch(() => {});
+  }, []);
+
+  const handleSavePrompt = async () => {
+    setPromptSaving(true);
+    setPromptSaved(false);
+    try {
+      await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ systemPrompt }),
+      });
+      setPromptSaved(true);
+      setTimeout(() => setPromptSaved(false), 2500);
+    } finally {
+      setPromptSaving(false);
+    }
+  };
 
   const handleSave = async (data: {
     name: string;
@@ -112,6 +143,48 @@ export default function SettingsPage() {
             </div>
             <div className="p-6">
               <CredentialForm onSave={handleSave} loading={saving || loading} />
+            </div>
+          </section>
+
+          {/* Custom Instructions section */}
+          <section className="rounded-xl border bg-card">
+            <div className="flex items-center gap-3 border-b px-6 py-4">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <MessageSquareTextIcon className="size-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold">Custom Instructions</h2>
+                <p className="text-xs text-muted-foreground">
+                  Tell the AI how to behave across all conversations
+                </p>
+              </div>
+            </div>
+            <div className="p-6 space-y-3">
+              <textarea
+                value={systemPrompt}
+                onChange={(e) => setSystemPrompt(e.target.value)}
+                placeholder="e.g. Always respond in Arabic. Be concise. You are an expert software engineer."
+                rows={5}
+                className="w-full resize-none rounded-lg border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  These instructions are added to every new message as a system
+                  prompt.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={handleSavePrompt}
+                  disabled={promptSaving}
+                  className="shrink-0"
+                >
+                  {promptSaved
+                    ? "Saved ✓"
+                    : promptSaving
+                      ? "Saving..."
+                      : "Save"}
+                </Button>
+              </div>
             </div>
           </section>
 

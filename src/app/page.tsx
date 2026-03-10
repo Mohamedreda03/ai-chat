@@ -84,7 +84,7 @@ export default function HomePage() {
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:h-16 sm:px-6">
           <Link
             href="/"
-            className="flex flex-col items-center gap-1 font-semibold tracking-tight"
+            className="flex items-center gap-4 font-semibold tracking-tight"
           >
             <div className="flex size-8 items-center justify-center rounded-full bg-primary px-1.5 shadow-sm">
               <Logo className="size-5 text-primary-foreground" />

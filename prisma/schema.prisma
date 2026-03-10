@@ -47,3 +47,10 @@ model AICredential {
 
   @@unique([name])
 }
+
+// Singleton row (id = "default") that holds global user preferences
+model UserSettings {
+  id           String   @id @default("default")
+  systemPrompt String   @default("")
+  updatedAt    DateTime @updatedAt
+}

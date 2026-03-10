@@ -309,7 +309,15 @@ export async function POST(req: Request) {
 
     const result = streamText({
       model: languageModel,
-      system: "You are a helpful assistant.",
+      system: await (async () => {
+        const settings = await prisma.userSettings.findUnique({
+          where: { id: "default" },
+          select: { systemPrompt: true },
+        });
+        const custom = settings?.systemPrompt?.trim() ?? "";
+        const base = "You are a helpful assistant.";
+        return custom ? `${base}\n\n${custom}` : base;
+      })(),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       messages: modelMessages as any,
       onError({ error }) {

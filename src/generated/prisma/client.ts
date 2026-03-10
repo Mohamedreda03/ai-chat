@@ -56,3 +56,8 @@ export type Message = Prisma.MessageModel
  * 
  */
 export type AICredential = Prisma.AICredentialModel
+/**
+ * Model UserSettings
+ * 
+ */
+export type UserSettings = Prisma.UserSettingsModel
