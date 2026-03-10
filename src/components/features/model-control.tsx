@@ -24,6 +24,8 @@ export function ModelControl({
 
   // Auto-select first available model if none selected
   useEffect(() => {
+    if (loading) return; // Don't clear persisted model while API is still loading
+
     if (flatModels.length === 0) {
       if (value) onChange(null);
       return;

@@ -32,6 +32,7 @@ import {
   AttachmentRemove,
   Attachments,
 } from "@/components/ai-elements/attachments";
+import { XIcon } from "lucide-react";
 
 // Shows attached files above the textarea
 const AttachmentHeader = () => {
@@ -39,18 +40,42 @@ const AttachmentHeader = () => {
   if (attachments.files.length === 0) return null;
   return (
     <PromptInputHeader>
-      <Attachments variant="inline">
-        {attachments.files.map((f) => (
-          <Attachment
-            key={f.id}
-            data={f}
-            onRemove={() => attachments.remove(f.id)}
-          >
-            <AttachmentPreview />
-            <AttachmentRemove />
-          </Attachment>
-        ))}
-      </Attachments>
+      <div className="flex flex-wrap gap-1.5 px-1">
+        {attachments.files.map((f) => {
+          const isImage =
+            f.type === "file" && f.mediaType?.startsWith("image/");
+          if (isImage) {
+            return (
+              <div
+                key={f.id}
+                className="relative size-14 shrink-0 overflow-hidden rounded-xl"
+              >
+                <img
+                  src={f.url}
+                  alt={f.filename ?? "Image"}
+                  className="size-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => attachments.remove(f.id)}
+                  className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-black/60"
+                  aria-label="Remove"
+                >
+                  <XIcon className="size-2.5 text-white" />
+                </button>
+              </div>
+            );
+          }
+          return (
+            <Attachments key={f.id} variant="inline">
+              <Attachment data={f} onRemove={() => attachments.remove(f.id)}>
+                <AttachmentPreview />
+                <AttachmentRemove />
+              </Attachment>
+            </Attachments>
+          );
+        })}
+      </div>
     </PromptInputHeader>
   );
 };

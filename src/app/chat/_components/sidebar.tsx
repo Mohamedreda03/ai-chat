@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -26,12 +26,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
-interface Conversation {
-  id: string;
-  title: string;
-  updatedAt: string;
-}
+import {
+  useConversations,
+  useDeleteConversation,
+  type Conversation,
+} from "@/hooks/use-conversations";
 
 function groupConversations(conversations: Conversation[]) {
   const now = new Date();
@@ -61,55 +60,37 @@ export function Sidebar() {
   const router = useRouter();
   const params = useParams();
   const activeId = params?.id as string | undefined;
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("sidebar-collapsed") === "true";
+    }
+    return false;
+  });
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("sidebar-collapsed");
-    if (saved === "true") setCollapsed(true);
-  }, []);
+  const { data: conversations = [] } = useConversations();
+  const deleteConversation = useDeleteConversation();
 
   const toggleCollapsed = (value: boolean) => {
     setCollapsed(value);
     localStorage.setItem("sidebar-collapsed", String(value));
   };
 
-  const fetchConversations = useCallback(async () => {
-    try {
-      const res = await fetch("/api/conversations");
-      const data = await res.json();
-      setConversations(data);
-    } catch {
-      /* silent */
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchConversations();
-  }, [activeId, fetchConversations]);
-
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     setPendingDeleteId(id);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (!pendingDeleteId) return;
     const id = pendingDeleteId;
     setPendingDeleteId(null);
-    setDeletingId(id);
-    try {
-      await fetch(`/api/conversations/${id}`, { method: "DELETE" });
-      setConversations((prev) => prev.filter((c) => c.id !== id));
-      if (activeId === id) router.push("/chat");
-    } catch {
-      /* silent */
-    } finally {
-      setDeletingId(null);
-    }
+    deleteConversation.mutate(id, {
+      onSuccess: () => {
+        if (activeId === id) router.push("/chat");
+      },
+    });
   };
 
   const groups = groupConversations(conversations);
@@ -204,7 +185,9 @@ export function Sidebar() {
                         onClick={(e) => handleDelete(e, conv.id)}
                         className={cn(
                           "flex size-6 shrink-0 items-center justify-center rounded-md opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100",
-                          deletingId === conv.id && "animate-pulse opacity-100",
+                          deleteConversation.isPending &&
+                            deleteConversation.variables === conv.id &&
+                            "animate-pulse opacity-100",
                         )}
                         aria-label="Delete conversation"
                       >

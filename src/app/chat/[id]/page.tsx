@@ -29,7 +29,14 @@ export default async function ChatPage({
 
   if (!conversation) notFound();
 
-  const initialMessages: UIMessage[] = conversation.messages.map((m) => {
+  // Separate error messages from real conversation messages
+  const regularMessages = conversation.messages.filter(
+    (m) => m.role !== "error",
+  );
+  const lastError = conversation.messages.findLast((m) => m.role === "error");
+  const initialError = lastError?.content ?? null;
+
+  const initialMessages: UIMessage[] = regularMessages.map((m) => {
     type SavedFile = {
       url: string;
       mediaType: string;
@@ -85,6 +92,7 @@ export default async function ChatPage({
         conversationId={id}
         initialMessages={initialMessages}
         initialModel={initialModel}
+        initialError={initialError}
       />
     </ErrorBoundary>
   );

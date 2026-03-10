@@ -1,76 +1,54 @@
 import { test, expect } from "./fixtures";
 
 /**
- * Credentials Management Tests
- * Test adding, viewing, and deleting API credentials
+ * Settings & Credential Management Tests
+ * Validates the /chat/settings page, credential form, and credential list.
  */
 
-test.describe("Credential Management", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+test.describe("Settings Page", () => {
+  test.beforeEach(async ({ page, hydrate }) => {
+    await page.goto("/chat/settings");
+    await hydrate();
   });
 
-  test("should open models and keys dialog", async ({ page }) => {
-    const modelsButton = page.locator("button:has-text('Models & Keys')");
-    await modelsButton.click();
-
-    // Check dialog appears
-    const dialog = page.locator("[role='dialog']");
-    await expect(dialog).toBeVisible();
-
-    // Check dialog title
-    await expect(dialog.locator("h2")).toContainText("Models & API keys");
+  test("should render the settings page with heading", async ({ page }) => {
+    const heading = page.locator("h1");
+    await expect(heading).toContainText("Settings");
   });
 
-  test("should display credential form in dialog", async ({ page }) => {
-    const modelsButton = page.locator("button:has-text('Models & Keys')");
-    await modelsButton.click();
+  test("should show the Add API Key section", async ({ page }) => {
+    const addKeyHeading = page.locator("h2").filter({ hasText: "Add API Key" });
+    await expect(addKeyHeading).toBeVisible();
+  });
 
-    // Check for form inputs
-    const nameInput = page.locator("input[placeholder*='Platform name']");
-    const apiKeyInput = page.locator("input[type='password']");
-    const typeSelect = page.locator("[role='combobox']").first();
-
+  test("should display credential form with name input", async ({ page }) => {
+    const nameInput = page.locator("[data-testid='credential-name']");
     await expect(nameInput).toBeVisible();
+    await expect(nameInput).toHaveAttribute("placeholder", /Platform name/);
+  });
+
+  test("should display API key input", async ({ page }) => {
+    const apiKeyInput = page.locator("[data-testid='credential-apikey']");
     await expect(apiKeyInput).toBeVisible();
-    await expect(typeSelect).toBeVisible();
+    await expect(apiKeyInput).toHaveAttribute("type", "password");
   });
 
-  test("should show base URL input for OpenAI-compatible", async ({ page }) => {
-    const modelsButton = page.locator("button:has-text('Models & Keys')");
-    await modelsButton.click();
-
-    // Select OpenAI-compatible (should be default)
-    const typeSelect = page.locator("[role='combobox']").first();
-    await typeSelect.click();
-
-    // Base URL input should be visible for OpenAI-compatible
-    const baseUrlInput = page.locator("input[placeholder*='Base URL']");
-    // Check if it exists in the DOM
-    const isVisible = await baseUrlInput.isVisible().catch(() => false);
-    // It's visible because OpenAI-compatible is default
-    if (isVisible) {
-      await expect(baseUrlInput).toBeVisible();
-    }
+  test("should display platform kind selector", async ({ page }) => {
+    const kindSelect = page.locator("[data-testid='credential-kind']");
+    await expect(kindSelect).toBeVisible();
   });
 
-  test("should validate required fields before saving", async ({ page }) => {
-    const modelsButton = page.locator("button:has-text('Models & Keys')");
-    await modelsButton.click();
-
-    const saveButton = page.locator("button:has-text('Save API key')");
-
-    // Save button should be disabled initially
+  test("should disable save button when fields are empty", async ({ page }) => {
+    const saveButton = page.locator("[data-testid='save-credential']");
     await expect(saveButton).toBeDisabled();
   });
 
-  test("should enable save button when fields are filled", async ({ page }) => {
-    const modelsButton = page.locator("button:has-text('Models & Keys')");
-    await modelsButton.click();
-
-    const nameInput = page.locator("input[placeholder*='Platform name']");
-    const apiKeyInput = page.locator("input[type='password']");
-    const saveButton = page.locator("button:has-text('Save API key')");
+  test("should enable save button when name and API key are filled", async ({
+    page,
+  }) => {
+    const nameInput = page.locator("[data-testid='credential-name']");
+    const apiKeyInput = page.locator("[data-testid='credential-apikey']");
+    const saveButton = page.locator("[data-testid='save-credential']");
 
     // Initially disabled
     await expect(saveButton).toBeDisabled();
@@ -86,41 +64,54 @@ test.describe("Credential Management", () => {
     await expect(saveButton).toBeEnabled();
   });
 
-  test("should handle save errors gracefully", async ({ page }) => {
-    const modelsButton = page.locator("button:has-text('Models & Keys')");
-    await modelsButton.click();
-
-    const nameInput = page.locator("input[placeholder*='Platform name']");
-    const apiKeyInput = page.locator("input[type='password']");
-    const saveButton = page.locator("button:has-text('Save API key')");
-
-    // Fill with test data
-    await nameInput.fill("Duplicate Provider");
-    await apiKeyInput.fill("sk-invalid");
-
-    // Click save (will fail because provider doesn't exist or is invalid)
-    await saveButton.click();
-
-    // Error message should appear
-    const errorMsg = page.locator("text=/error|failed/i");
-    // May or may not show depending on validation
-    // Just ensure save button remains available for retry
-    await expect(saveButton).toBeVisible();
+  test("should show Connected Platforms section", async ({ page }) => {
+    const heading = page
+      .locator("h2")
+      .filter({ hasText: "Connected Platforms" });
+    await expect(heading).toBeVisible();
   });
 
-  test("should show connected platforms list", async ({ page }) => {
-    const modelsButton = page.locator("button:has-text('Models & Keys')");
-    await modelsButton.click();
+  test("should show empty state when no credentials", async ({
+    page,
+    cleanup,
+  }) => {
+    // Ensure we start clean
+    void cleanup;
+    const emptyMessage = page.locator("text=No platform added yet");
+    await expect(emptyMessage).toBeVisible({ timeout: 5000 });
+  });
 
-    // Check for the connected platforms heading
-    const heading = page.locator("h3:has-text('Connected platforms')");
-    await expect(heading).toBeVisible();
+  test("should show Danger Zone section", async ({ page }) => {
+    const dangerHeading = page.locator("h2").filter({ hasText: "Danger Zone" });
+    await expect(dangerHeading).toBeVisible();
+  });
 
-    // Check for "No platform added yet" message
-    const emptyMsg = page.locator("text=No platform added yet");
-    // May be visible initially
-    if (await emptyMsg.isVisible().catch(() => false)) {
-      await expect(emptyMsg).toBeVisible();
-    }
+  test("should have back navigation button", async ({ page }) => {
+    // The back button is inside the main content, next to the h1
+    // On desktop, the first visible button may be a sidebar button.
+    // Target the one near the heading:
+    const backButton = page.locator("main button").first();
+    await expect(backButton).toBeVisible();
+  });
+});
+
+/**
+ * Credential Form Dialog (via SettingsDialog component)
+ * Tests the dialog trigger accessible from sidebar Settings link.
+ */
+test.describe("Credential Management via Settings Page", () => {
+  test("should navigate to settings from chat sidebar", async ({
+    page,
+    hydrate,
+  }) => {
+    await page.goto("/chat");
+    await hydrate();
+
+    const settingsLink = page.locator("a[href='/chat/settings']").first();
+    await expect(settingsLink).toBeVisible({ timeout: 5000 });
+    await settingsLink.click();
+
+    await expect(page).toHaveURL("/chat/settings");
+    await expect(page.locator("h1")).toContainText("Settings");
   });
 });

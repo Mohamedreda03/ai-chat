@@ -2,211 +2,256 @@ import { test, expect } from "./fixtures";
 
 /**
  * User Flow Tests
- * Test complete end-to-end user flows
+ * End-to-end user journey tests: navigation, model picker, theme, persistence.
  */
 
-test.describe("Complete User Flows", () => {
-  // Note: Full credential addition flow requires valid API keys
-  // These tests focus on UI/UX validation rather than backend validation
+test.describe("Navigation Flows", () => {
+  test("can navigate from landing to chat page", async ({ page, hydrate }) => {
+    await page.goto("/");
+    await hydrate();
 
-  test("user can open model control dialog on all pages", async ({ page }) => {
-    const pages = ["/", "/chat"];
+    const chatLink = page.locator("a[href='/chat']").first();
+    await expect(chatLink).toBeVisible();
+    await chatLink.click();
 
-    for (const route of pages) {
-      await page.goto(route);
-
-      const modelsButton = page.locator("button:has-text('Models & Keys')");
-      await expect(modelsButton).toBeVisible();
-
-      await modelsButton.click();
-
-      const dialog = page.locator("[role='dialog']");
-      await expect(dialog).toBeVisible();
-
-      // Close dialog by pressing Escape
-      await page.keyboard.press("Escape");
-      await expect(dialog).not.toBeVisible();
-    }
+    await expect(page).toHaveURL("/chat");
   });
 
-  test("landing page flow: no model selected -> can't send", async ({
+  test("can navigate from chat to home via sidebar", async ({
     page,
+    hydrate,
+  }) => {
+    await page.goto("/chat");
+    await hydrate();
+
+    const homeLink = page.locator("a[href='/']").filter({ hasText: "Home" });
+    await expect(homeLink).toBeVisible({ timeout: 5000 });
+    await homeLink.click();
+
+    await expect(page).toHaveURL("/");
+  });
+
+  test("can navigate from chat to settings via sidebar", async ({
+    page,
+    hydrate,
+  }) => {
+    await page.goto("/chat");
+    await hydrate();
+
+    const settingsLink = page.locator("a[href='/chat/settings']").first();
+    await expect(settingsLink).toBeVisible({ timeout: 5000 });
+    await settingsLink.click();
+
+    await expect(page).toHaveURL("/chat/settings");
+  });
+
+  test("can create new conversation from chat page", async ({
+    page,
+    request,
+    hydrate,
+  }) => {
+    // First create a conversation to navigate to, so we're on /chat/[id]
+    const res = await request.post("/api/conversations", { data: {} });
+    expect(res.ok()).toBeTruthy();
+    const conv = (await res.json()) as { id: string };
+
+    await page.goto(`/chat/${conv.id}`);
+    await hydrate();
+
+    // Click "New chat" button in sidebar
+    const newChatButton = page
+      .locator("button")
+      .filter({ hasText: "New chat" });
+    await expect(newChatButton).toBeVisible({ timeout: 5000 });
+    await newChatButton.click();
+
+    // Should navigate to /chat (new chat page)
+    await expect(page).toHaveURL("/chat");
+
+    // Clean up
+    await request.delete(`/api/conversations/${conv.id}`).catch(() => {});
+  });
+});
+
+test.describe("Model Picker Accessibility", () => {
+  test("model picker is visible on landing page", async ({ page, hydrate }) => {
+    await page.goto("/");
+    await hydrate();
+
+    const modelPicker = page
+      .locator("button")
+      .filter({ hasText: /Select model|Loading/ });
+    await expect(modelPicker.first()).toBeVisible({ timeout: 10000 });
+  });
+
+  test("model picker is visible on chat page", async ({ page, hydrate }) => {
+    await page.goto("/chat");
+    await hydrate();
+
+    const modelPicker = page
+      .locator("button")
+      .filter({ hasText: /Select model|Loading/ });
+    await expect(modelPicker.first()).toBeVisible({ timeout: 10000 });
+  });
+
+  test("model picker opens popover on click", async ({ page, hydrate }) => {
+    await page.goto("/chat");
+    await hydrate();
+
+    const modelPicker = page
+      .locator("button")
+      .filter({ hasText: /Select model|Loading/ });
+    await expect(modelPicker.first()).toBeVisible({ timeout: 10000 });
+    await modelPicker.first().click();
+
+    // Should open a popover with command input for searching models
+    const searchInput = page.locator("input[placeholder='Search models...']");
+    await expect(searchInput).toBeVisible({ timeout: 5000 });
+  });
+});
+
+test.describe("Theme Toggle", () => {
+  test("theme toggle changes the theme class", async ({ page, hydrate }) => {
+    await page.goto("/");
+    await hydrate();
+
+    const themeToggle = page.locator("button[aria-label='Toggle dark mode']");
+    await expect(themeToggle).toBeVisible();
+
+    // Get initial theme
+    const initialClass = await page.locator("html").getAttribute("class");
+
+    // Click theme toggle
+    await themeToggle.click();
+    await page.waitForTimeout(300);
+
+    // Theme should change
+    const newClass = await page.locator("html").getAttribute("class");
+    expect(newClass).not.toBe(initialClass);
+  });
+
+  test("theme toggle is available on chat page sidebar", async ({
+    page,
+    hydrate,
+  }) => {
+    await page.goto("/chat");
+    await hydrate();
+
+    const themeToggle = page.locator("button[aria-label='Toggle dark mode']");
+    await expect(themeToggle.first()).toBeVisible({ timeout: 5000 });
+  });
+});
+
+test.describe("localStorage Persistence", () => {
+  test("localStorage works for arbitrary data across navigation", async ({
+    page,
+    hydrate,
   }) => {
     await page.goto("/");
+    await hydrate();
 
-    const textarea = page.locator("textarea[placeholder='Ask me anything...']");
-    const startButton = page.locator("button").filter({ hasText: "Start" }).first();
-
-    await textarea.fill("Hello world");
-
-    // Start button should be disabled
-    await expect(startButton).toBeDisabled();
-  });
-
-  test("chat page flow: no model selected -> can't send", async ({ page }) => {
-    await page.goto("/chat");
-
-    const textarea = page.locator("textarea[placeholder='Type your message...']");
-    const sendButton = page.locator("button[aria-label='Send']");
-
-    if (await textarea.isVisible().catch(() => false)) {
-      await textarea.fill("Hello world");
-
-      // Send button should be disabled
-      await expect(sendButton).toBeDisabled();
-    }
-  });
-
-  test("can navigate between landing and chat page", async ({ page }) => {
-    // Start at landing
-    await page.goto("/");
-    await expect(page).toHaveURL("/");
-
-    // Navigate to chat
-    const startChatButton = page.locator("a:has-text('Start Chatting')").first();
-    if (await startChatButton.isVisible().catch(() => false)) {
-      await startChatButton.click();
-      await expect(page).toHaveURL("/chat");
-    }
-
-    // Navigate back to landing
-    const homeLink = page.locator("a[aria-label='Home']");
-    if (await homeLink.isVisible().catch(() => false)) {
-      await homeLink.click();
-      await expect(page).toHaveURL("/");
-    }
-  });
-
-  test("can create new conversation from chat page", async ({ page }) => {
-    await page.goto("/chat");
-
-    const newChatButton = page.locator("button:has-text('New chat')");
-    if (await newChatButton.isVisible().catch(() => false)) {
-      await newChatButton.click();
-
-      // Should create a new conversation
-      const url = page.url();
-      expect(url).toMatch(/\/chat\/[a-zA-Z0-9]+/);
-    }
-  });
-
-  test("model control dialog has consistent appearance", async ({ page }) => {
-    await page.goto("/");
-
-    const modelsButton = page.locator("button:has-text('Models & Keys')");
-    await modelsButton.click();
-
-    const dialog = page.locator("[role='dialog']");
-
-    // Should have title
-    const title = dialog.locator("h2");
-    await expect(title).toContainText("Models & API");
-
-    // Should have close button or allow Escape
-    const closeButton = dialog.locator("button[aria-label='Close']");
-    const hasClose = await closeButton.isVisible().catch(() => false);
-
-    if (hasClose) {
-      await closeButton.click();
-      await expect(dialog).not.toBeVisible();
-    } else {
-      // Try Escape key
-      await page.keyboard.press("Escape");
-      await expect(dialog).not.toBeVisible();
-    }
-  });
-
-  test("sidebar shows conversation data if available", async ({ page }) => {
-    // Create a conversation
-    const response = await page.request.post("/api/conversations", {
-      data: {},
+    // Set arbitrary data in localStorage
+    await page.evaluate(() => {
+      localStorage.setItem(
+        "e2e-persist-test",
+        JSON.stringify({ key: "value123" }),
+      );
     });
 
-    if (response.ok()) {
-      const conv = (await response.json()) as { id: string };
+    // Navigate to a different page
+    await page.goto("/chat");
+    await hydrate();
 
-      // Navigate to that conversation
-      await page.goto(`/chat/${conv.id}`);
-
-      // Sidebar should show it (if sidebar exists)
-      const sidebar = page.locator("[role='navigation']");
-      if (await sidebar.isVisible().catch(() => false)) {
-        await expect(sidebar).toBeVisible();
-      }
-    }
-  });
-
-  test("model selection state persists on same page navigation", async ({
-    page,
-  }) => {
-    await page.goto("/");
-
-    // Set a model in localStorage
-    const testModel = {
-      credentialId: "test-123",
-      credentialName: "Test Provider",
-      modelId: "model-abc",
-      modelLabel: "Test Model",
-    };
-
-    await page.evaluate((model) => {
-      localStorage.setItem("selected-model", JSON.stringify(model));
-    }, testModel);
-
-    // Reload the page and verify model is still there
-    await page.reload();
-
-    const value = await page.evaluate(() => localStorage.getItem("selected-model"));
+    // Verify it persists across navigation
+    const value = await page.evaluate(() =>
+      localStorage.getItem("e2e-persist-test"),
+    );
     expect(value).not.toBeNull();
 
-    const parsed = JSON.parse(value || "null");
-    expect(parsed.credentialId).toBe(testModel.credentialId);
+    const parsed = JSON.parse(value!);
+    expect(parsed.key).toBe("value123");
+
+    // Clean up
+    await page.evaluate(() => localStorage.removeItem("e2e-persist-test"));
   });
 
-  test("dialog closes when clicking outside (if modal)", async ({ page }) => {
-    await page.goto("/");
+  test("sidebar collapsed state persists", async ({ page, hydrate }) => {
+    await page.goto("/chat");
+    await hydrate();
 
-    const modelsButton = page.locator("button:has-text('Models & Keys')");
-    await modelsButton.click();
+    // Check sidebar is visible (expanded by default on desktop)
+    const collapseButton = page.locator(
+      "button[aria-label='Collapse sidebar']",
+    );
+    if (await collapseButton.isVisible().catch(() => false)) {
+      await collapseButton.click();
+      await page.waitForTimeout(300);
 
-    const dialog = page.locator("[role='dialog']");
-    await expect(dialog).toBeVisible();
+      // Verify localStorage
+      const collapsed = await page.evaluate(() =>
+        localStorage.getItem("sidebar-collapsed"),
+      );
+      expect(collapsed).toBe("true");
 
-    // Try clicking outside the dialog
-    const overlay = page.locator("[role='dialog']").evaluate((el) => {
-      return el.parentElement;
-    });
+      // Reload
+      await page.reload();
+      await hydrate();
 
-    // Click outside (if it's a modal dialog)
-    await page.click("body", { force: true });
-
-    // Dialog should either close or stay open (both are valid patterns)
-    const isVisible = await dialog.isVisible().catch(() => false);
-    expect(typeof isVisible).toBe("boolean");
-  });
-
-  test("theme toggle works (if available)", async ({ page }) => {
-    await page.goto("/");
-
-    const themeToggle = page.locator("button[aria-label*='theme'], button[aria-label*='dark'], button[aria-label*='light']").first();
-
-    if (await themeToggle.isVisible().catch(() => false)) {
-      const initialTheme = await page.evaluate(() => {
-        return document.documentElement.getAttribute("data-theme") ||
-          document.documentElement.getAttribute("class") ||
-          "light";
-      });
-
-      await themeToggle.click();
-
-      const newTheme = await page.evaluate(() => {
-        return document.documentElement.getAttribute("data-theme") ||
-          document.documentElement.getAttribute("class") ||
-          "light";
-      });
-
-      // Theme should have changed or toggle is just visual
-      expect(typeof newTheme).toBe("string");
+      // Expand button should now be visible (sidebar is collapsed)
+      const expandButton = page.locator("button[aria-label='Expand sidebar']");
+      await expect(expandButton).toBeVisible({ timeout: 5000 });
     }
+  });
+});
+
+test.describe("Conversation Sidebar", () => {
+  // Run serially to avoid DELETE ALL interference between tests
+  test.describe.configure({ mode: "serial" });
+
+  test("sidebar shows created conversations", async ({
+    page,
+    request,
+    hydrate,
+  }) => {
+    // Create a conversation
+    const createRes = await request.post("/api/conversations", { data: {} });
+    expect(createRes.ok()).toBeTruthy();
+    const conv = (await createRes.json()) as { id: string; title: string };
+
+    // Set up response listener BEFORE navigation
+    const responsePromise = page.waitForResponse(
+      (resp) =>
+        resp.url().includes("/api/conversations") &&
+        resp.request().method() === "GET" &&
+        resp.status() === 200,
+    );
+    await page.goto(`/chat/${conv.id}`);
+    await responsePromise;
+    await hydrate();
+
+    // The sidebar item container has role="button" with the conversation title
+    const sidebarItem = page
+      .locator("[role='button']")
+      .filter({ hasText: /New Conversation/i })
+      .first();
+    await expect(sidebarItem).toBeVisible({ timeout: 15000 });
+
+    // Clean up only our specific conversation
+    await request.delete(`/api/conversations/${conv.id}`).catch(() => {});
+  });
+
+  test("sidebar shows 'No conversations yet' when empty", async ({
+    page,
+    request,
+    hydrate,
+  }) => {
+    // Clean up all conversations first
+    await request.delete("/api/conversations").catch(() => {});
+
+    await page.goto("/chat");
+    await hydrate();
+
+    const emptyMsg = page.locator("text=No conversations yet");
+    await expect(emptyMsg).toBeVisible({ timeout: 10000 });
   });
 });

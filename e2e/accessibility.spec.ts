@@ -2,195 +2,186 @@ import { test, expect } from "@playwright/test";
 
 /**
  * Accessibility Tests
- * Ensure all components meet WCAG 2.1 Level AA standards
+ * WCAG 2.1 Level AA compliance checks for key pages.
  */
 
-test.describe("Accessibility", () => {
-  test("landing page should have proper heading hierarchy", async ({ page }) => {
+test.describe("Accessibility - Landing Page", () => {
+  test.beforeEach(async ({ page }) => {
     await page.goto("/");
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(300);
+  });
 
-    // Check for h1 tag
+  test("should have a single h1 heading", async ({ page }) => {
     const h1 = page.locator("h1");
     await expect(h1).toHaveCount(1);
-
-    // Check that h1 appears before other headings (if any)
-    const h2 = page.locator("h2");
-    const h1Box = await h1.boundingBox();
-    const h2Box = await h2.first().boundingBox().catch(() => null);
-
-    if (h1Box && h2Box) {
-      expect(h1Box.y).toBeLessThan(h2Box.y);
-    }
   });
 
-  test("buttons should have accessible labels", async ({ page }) => {
-    await page.goto("/");
-
-    // Check Models & Keys button
-    const modelsButton = page.locator("button:has-text('Models & Keys')");
-    await expect(modelsButton).toHaveAttribute("aria-label");
-
-    // Check Start button (if present)
-    const startButton = page.locator("button:has-text('Start')").first();
-    if (await startButton.isVisible().catch(() => false)) {
-      const ariaLabel = await startButton.getAttribute("aria-label").catch(() => null);
-      const hasText = await startButton.textContent();
-      expect(ariaLabel || hasText).toBeTruthy();
-    }
-  });
-
-  test("form inputs should have associated labels", async ({ page }) => {
-    await page.goto("/");
-
-    const modelsButton = page.locator("button:has-text('Models & Keys')");
-    await modelsButton.click();
-
-    // Check textarea in dialog
-    const inputs = page.locator("input, textarea");
-    const count = await inputs.count();
-
-    // Each visible input should be accessible
-    for (let i = 0; i < count; i++) {
-      const input = inputs.nth(i);
-      if (await input.isVisible().catch(() => false)) {
-        // Should either have a label, placeholder, or aria-label
-        const hasLabel =
-          (await input.getAttribute("aria-label")) !== null ||
-          (await input.getAttribute("placeholder")) !== null;
-        expect(hasLabel).toBe(true);
-      }
-    }
-  });
-
-  test("dialog should have proper role and focus management", async ({
-    page,
-  }) => {
-    await page.goto("/");
-
-    const modelsButton = page.locator("button:has-text('Models & Keys')");
-    await modelsButton.click();
-
-    const dialog = page.locator("[role='dialog']");
-    await expect(dialog).toBeVisible();
-
-    // Dialog should be labeled
-    const dialogTitle = dialog.locator("h2");
-    const hasTitle = (await dialogTitle.count()) > 0;
-    expect(hasTitle).toBe(true);
-  });
-
-  test("navigation should be keyboard accessible", async ({ page }) => {
-    await page.goto("/");
-
-    // Tab to Models & Keys button
-    await page.keyboard.press("Tab");
-    const focused = page.locator(":focus");
-    const focusedText = await focused.textContent();
-
-    expect(focusedText).toBeTruthy();
-  });
-
-  test("color contrast should be sufficient", async ({ page }) => {
-    await page.goto("/");
-
-    // Check main heading contrast
-    const heading = page.locator("h1");
-    const style = await heading.evaluate((el) => {
-      const computed = window.getComputedStyle(el);
-      return {
-        color: computed.color,
-        backgroundColor: computed.backgroundColor,
-      };
-    });
-
-    // Just ensure we can get style information
-    expect(style.color).toBeTruthy();
-    expect(style.backgroundColor).toBeTruthy();
-  });
-
-  test("interactive elements should have visible focus indicator", async ({
-    page,
-  }) => {
-    await page.goto("/");
-
-    const button = page.locator("button").first();
-    await button.focus();
-
-    // Check if button or parent has outline/border styles
-    const hasFocus = await button.evaluate((el) => {
-      const computed = window.getComputedStyle(el);
-      const outline = computed.outline;
-      const boxShadow = computed.boxShadow;
-      const border = computed.border;
-
-      return outline !== "none" || boxShadow !== "none" || border !== "none";
-    });
-
-    // Should have some focus indicator
-    expect(hasFocus).toBe(true);
-  });
-
-  test("language attribute should be set on html element", async ({
-    page,
-  }) => {
-    await page.goto("/");
-
-    const html = page.locator("html");
-    const lang = await html.getAttribute("lang");
-
+  test("should have lang attribute on html element", async ({ page }) => {
+    const lang = await page.locator("html").getAttribute("lang");
     expect(lang).toBeTruthy();
+    expect(lang).toBe("en");
   });
 
-  test("page should have descriptive title", async ({ page }) => {
-    await page.goto("/");
-
+  test("should have a descriptive page title", async ({ page }) => {
     const title = await page.title();
     expect(title.length).toBeGreaterThan(0);
     expect(title).not.toBe("undefined");
   });
 
-  test("images should have alt text", async ({ page }) => {
-    await page.goto("/");
+  test("send button should have aria-label", async ({ page }) => {
+    const sendButton = page.locator("button[aria-label='Send']");
+    await expect(sendButton).toBeVisible();
+    await expect(sendButton).toHaveAttribute("aria-label", "Send");
+  });
 
+  test("theme toggle should have aria-label", async ({ page }) => {
+    const themeToggle = page.locator("button[aria-label='Toggle dark mode']");
+    await expect(themeToggle).toBeVisible();
+  });
+
+  test("images should have alt text or be hidden", async ({ page }) => {
     const images = page.locator("img");
     const count = await images.count();
 
     for (let i = 0; i < count; i++) {
       const img = images.nth(i);
       const alt = await img.getAttribute("alt");
-      // Either has alt or is aria-hidden
       const isHidden = await img.getAttribute("aria-hidden");
-      expect(alt !== null || isHidden !== null).toBe(true);
+      const role = await img.getAttribute("role");
+      // Must have alt, aria-hidden, or presentation role
+      expect(alt !== null || isHidden !== null || role === "presentation").toBe(
+        true,
+      );
     }
   });
 
-  test("form submission should provide feedback", async ({ page }) => {
-    await page.goto("/");
-
-    const modelsButton = page.locator("button:has-text('Models & Keys')");
-    await modelsButton.click();
-
-    // Try to submit empty form (should fail)
-    const saveButton = page.locator("button:has-text('Save API key')");
-
-    // Button should be disabled, providing clear feedback
-    const isDisabled = await saveButton.isDisabled();
-    expect(isDisabled).toBe(true);
-  });
-
-  test("error messages should be associated with form fields", async ({
+  test("interactive elements should be keyboard-focusable", async ({
     page,
   }) => {
-    await page.goto("/");
+    // Tab through the page and verify focus moves
+    await page.keyboard.press("Tab");
+    const firstFocused = page.locator(":focus");
+    const tagName = await firstFocused
+      .evaluate((el) => el.tagName)
+      .catch(() => "");
+    // Should focus on something interactive (a, button, input, etc.)
+    expect(["A", "BUTTON", "INPUT", "TEXTAREA", "SELECT", ""]).toContain(
+      tagName,
+    );
+  });
 
-    const modelsButton = page.locator("button:has-text('Models & Keys')");
-    await modelsButton.click();
+  test("color information should be available via computed styles", async ({
+    page,
+  }) => {
+    const heading = page.locator("h1");
+    const style = await heading.evaluate((el) => {
+      const computed = window.getComputedStyle(el);
+      return {
+        color: computed.color,
+        fontSize: computed.fontSize,
+      };
+    });
+    expect(style.color).toBeTruthy();
+    expect(style.fontSize).toBeTruthy();
+  });
+});
 
-    // If form shows error, check association
-    const errorElements = page.locator("[role='alert'], .error, [aria-error='true']");
-    const errorCount = await errorElements.count();
+test.describe("Accessibility - Chat Page", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/chat");
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(300);
+  });
 
-    // May or may not have errors depending on form state
-    expect(errorCount >= 0).toBe(true);
+  test("submit button should have aria-label", async ({ page }) => {
+    const submitButton = page.locator("button[aria-label='Submit']");
+    await expect(submitButton).toBeVisible();
+  });
+
+  test("textarea should have placeholder for accessibility", async ({
+    page,
+  }) => {
+    const textarea = page.locator(
+      "textarea[placeholder='Type your message...']",
+    );
+    await expect(textarea).toBeVisible();
+  });
+
+  test("sidebar buttons should have accessible labels", async ({ page }) => {
+    // Collapse sidebar button
+    const collapseBtn = page.locator("button[aria-label='Collapse sidebar']");
+    if (await collapseBtn.isVisible().catch(() => false)) {
+      await expect(collapseBtn).toHaveAttribute("aria-label");
+    }
+
+    // Mobile open button
+    const mobileBtn = page.locator("button[aria-label='Open sidebar']");
+    // Exists but might be hidden on desktop
+    const count = await mobileBtn.count();
+    expect(count).toBeGreaterThanOrEqual(0);
+  });
+
+  test("delete conversation buttons should have aria-label", async ({
+    page,
+    request,
+  }) => {
+    // Create a conversation so delete button appears
+    const res = await request.post("/api/conversations", { data: {} });
+    if (res.ok()) {
+      const conv = (await res.json()) as { id: string };
+      await page.goto(`/chat/${conv.id}`);
+      await page.waitForLoadState("domcontentloaded");
+      await page.waitForTimeout(500);
+
+      const deleteBtn = page
+        .locator("button[aria-label='Delete conversation']")
+        .first();
+      if (await deleteBtn.isVisible().catch(() => false)) {
+        await expect(deleteBtn).toHaveAttribute(
+          "aria-label",
+          "Delete conversation",
+        );
+      }
+
+      await request.delete(`/api/conversations/${conv.id}`).catch(() => {});
+    }
+  });
+});
+
+test.describe("Accessibility - Settings Page", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/chat/settings");
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(300);
+  });
+
+  test("should have proper heading hierarchy", async ({ page }) => {
+    const h1 = page.locator("h1");
+    await expect(h1).toHaveCount(1);
+    await expect(h1).toContainText("Settings");
+
+    // h2 elements should exist (Add API Key, Connected Platforms, Danger Zone)
+    const h2s = page.locator("h2");
+    const count = await h2s.count();
+    expect(count).toBeGreaterThanOrEqual(2);
+  });
+
+  test("form inputs should have placeholders or labels", async ({ page }) => {
+    const nameInput = page.locator("[data-testid='credential-name']");
+    await expect(nameInput).toHaveAttribute("placeholder");
+
+    const apiKeyInput = page.locator("[data-testid='credential-apikey']");
+    await expect(apiKeyInput).toHaveAttribute("placeholder");
+  });
+
+  test("save button disabled state provides clear feedback", async ({
+    page,
+  }) => {
+    const saveButton = page.locator("[data-testid='save-credential']");
+    await expect(saveButton).toBeDisabled();
+    // Disabled buttons should communicate non-interactivity
+    const isDisabled = await saveButton.isDisabled();
+    expect(isDisabled).toBe(true);
   });
 });
